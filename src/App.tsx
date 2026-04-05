@@ -311,7 +311,7 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
-  const [mobileActiveView, setMobileActiveView] = useState<'tasks' | 'dashboard' | 'studio'>('dashboard');
+  const [mobileActiveView, setMobileActiveView] = useState<'tasks' | 'dashboard' | 'ideas'>('dashboard');
   const [isTaskMenuOpen, setIsTaskMenuOpen] = useState(false);
 
   // Task Modal State
@@ -1190,7 +1190,7 @@ function App() {
             "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-surface-muted-dark group",
             isRightPanelOpen ? "lg:right-80 xl:right-96 translate-x-1/2" : "right-4"
           )}
-          title={isRightPanelOpen ? "Hide Study Studio" : "Show Study Studio"}
+          title={isRightPanelOpen ? "Hide Key Ideas" : "Show Key Ideas"}
         >
           {isRightPanelOpen ? <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary" /> : <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary" />}
         </button>
@@ -1200,7 +1200,7 @@ function App() {
           "w-full lg:w-80 xl:w-96 border-l border-border dark:border-border-dark flex flex-col bg-surface-muted dark:bg-surface-dark/50 backdrop-blur-sm transition-all duration-300",
           !isRightPanelOpen && "lg:-mr-80 xl:-mr-96",
           "fixed top-20 bottom-20 inset-x-0 z-40 lg:relative lg:top-0 lg:bottom-0 lg:inset-auto",
-          mobileActiveView === 'studio' ? "flex translate-x-0" : "hidden lg:flex",
+          mobileActiveView === 'ideas' ? "flex translate-x-0" : "hidden lg:flex",
           "max-w-3xl mx-auto lg:max-w-none"
         )}>
           <div className="p-8 flex-1 flex flex-col overflow-hidden">
@@ -1209,12 +1209,9 @@ function App() {
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                   <BrainCircuit className="w-5 h-5" />
                 </div>
-                <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark">Study Studio</h2>
+                <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark">Key Ideas</h2>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setIsAddingFlashcard(!isAddingFlashcard)} className="rounded-full">
-                  {isAddingFlashcard ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                </Button>
                 <Button variant="ghost" size="icon" className="lg:hidden rounded-full" onClick={() => setMobileActiveView('dashboard')}>
                   <X className="w-5 h-5" />
                 </Button>
@@ -1233,9 +1230,9 @@ function App() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => setIsAddingConcept(!isAddingConcept)} 
-                    className={cn("h-6 w-6 rounded-full", isAddingConcept ? "text-primary bg-primary/10" : "text-text-muted")}
+                    className={cn("h-8 w-8 rounded-full", isAddingConcept ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-primary/5")}
                   >
-                    <Plus className="w-4 h-4" />
+                    {isAddingConcept ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                   </Button>
                 </div>
                 
@@ -1302,9 +1299,9 @@ function App() {
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setIsAddingFlashcard(!isAddingFlashcard)} 
-                  className={cn("h-6 w-6 rounded-full", isAddingFlashcard ? "text-primary bg-primary/10" : "text-text-muted")}
+                  className={cn("h-8 w-8 rounded-full", isAddingFlashcard ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-primary/5")}
                 >
-                  <Plus className="w-4 h-4" />
+                  {isAddingFlashcard ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                 </Button>
               </div>
 
@@ -1480,15 +1477,15 @@ function App() {
         </button>
 
         <button 
-          onClick={() => setMobileActiveView('studio')}
+          onClick={() => setMobileActiveView('ideas')}
           className={cn(
             "flex flex-col items-center gap-1 transition-all",
-            mobileActiveView === 'studio' ? "text-primary scale-110" : "text-text-muted"
+            mobileActiveView === 'ideas' ? "text-primary scale-110" : "text-text-muted"
           )}
         >
           <div className={cn(
             "p-2 rounded-xl transition-all",
-            mobileActiveView === 'studio' ? "bg-primary/10" : "bg-transparent"
+            mobileActiveView === 'ideas' ? "bg-primary/10" : "bg-transparent"
           )}>
             <BrainCircuit className="w-6 h-6" />
           </div>
