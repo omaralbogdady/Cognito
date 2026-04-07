@@ -320,12 +320,33 @@ export const LandingPage = ({
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors">
+            <a 
+              href="https://byomar.carrd.co/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="p-2 rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors"
+              title="Profile"
+            >
+              <UserIcon className="w-5 h-5 text-text-muted" />
+            </a>
+            <a 
+              href="https://x.com/IntriguingMango" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="p-2 rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors"
+              title="Twitter"
+            >
               <Twitter className="w-5 h-5 text-text-muted" />
-            </button>
-            <button className="p-2 rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors">
+            </a>
+            <a 
+              href="https://github.com/omaralbogdady/Cognito" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="p-2 rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors"
+              title="GitHub"
+            >
               <Github className="w-5 h-5 text-text-muted" />
-            </button>
+            </a>
           </div>
         </div>
         <div className="text-center mt-12 text-xs text-text-muted dark:text-text-muted-dark opacity-50">
