@@ -38,4 +38,6 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   calendarSyncEnabled?: boolean;
+  hasCompletedOnboarding?: boolean;
+  themeColor?: string;
 }

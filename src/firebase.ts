@@ -8,7 +8,9 @@ import {
   User,
   signInAnonymously,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  deleteUser,
+  reauthenticateWithPopup
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -66,6 +68,8 @@ export {
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  deleteUser,
+  reauthenticateWithPopup,
   collection, 
   doc, 
   onSnapshot, 

@@ -28,7 +28,9 @@ import {
   getDoc,
   setDoc,
   deleteField,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  deleteUser,
+  reauthenticateWithPopup
 } from './firebase';
 import { 
   Layout, 
@@ -58,12 +60,27 @@ import {
   RotateCw,
   HelpCircle,
   Eye,
-  Lightbulb
+  Lightbulb,
+  Settings,
+  Palette,
+  UserX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { Task, SubTask, Note, TaskType, UserProfile } from './types';
 import { format } from 'date-fns';
+import { LandingPage } from './components/LandingPage';
+import { Onboarding } from './components/Onboarding';
+
+const THEME_COLORS = [
+  { name: 'Blue', primary: '#3B82F6', hover: '#2563EB', light: '#EFF6FF', dark: '#1D4ED8' },
+  { name: 'Red', primary: '#EF4444', hover: '#DC2626', light: '#FEF2F2', dark: '#B91C1C' },
+  { name: 'Pink', primary: '#EC4899', hover: '#DB2777', light: '#FDF2F8', dark: '#BE185D' },
+  { name: 'Green', primary: '#10B981', hover: '#059669', light: '#ECFDF5', dark: '#047857' },
+  { name: 'Yellow', primary: '#F59E0B', hover: '#D97706', light: '#FFFBEB', dark: '#B45309' },
+  { name: 'Orange', primary: '#F97316', hover: '#EA580C', light: '#FFF7ED', dark: '#C2410C' },
+  { name: 'Purple', primary: '#8B5CF6', hover: '#7C3AED', light: '#F5F3FF', dark: '#6D28D9' },
+];
 
 // --- Error Handling ---
 
@@ -124,7 +141,7 @@ function handleFirestoreError(error: any, operationType: OperationType, path: st
 const Modal = ({ isOpen, onClose, title, children }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-dark/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-dark/40 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -133,7 +150,7 @@ const Modal = ({ isOpen, onClose, title, children }: any) => {
       >
         <div className="px-6 py-5 border-b border-border dark:border-border-dark flex items-center justify-between bg-surface-muted/50 dark:bg-surface-muted-dark/50">
           <h3 className="font-bold text-xl tracking-tight text-text-main dark:text-text-main-dark">{title}</h3>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-surface-muted dark:hover:bg-surface-muted-dark">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-surface-muted dark:hover:bg-border-dark">
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -154,21 +171,21 @@ const Button = ({
   ...props 
 }: any) => {
   const variants: any = {
-    primary: 'bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/20',
-    secondary: 'bg-surface text-text-muted border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-muted-dark dark:border-border-dark dark:hover:bg-surface-muted shadow-sm',
-    ghost: 'bg-transparent text-text-muted hover:bg-surface-muted dark:text-text-muted-dark dark:hover:bg-surface-muted-dark',
+    primary: 'bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 hover:shadow-primary/30',
+    secondary: 'bg-surface text-text-muted border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-muted-dark dark:border-border-dark dark:hover:bg-border-dark shadow-sm hover:shadow-md',
+    ghost: 'bg-transparent text-text-muted hover:bg-surface-muted dark:text-text-muted-dark dark:hover:bg-surface-muted-dark/80',
     danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-100 dark:border-red-900/30',
   };
   const sizes: any = {
     sm: 'px-3 py-1.5 text-xs h-8',
-    md: 'px-5 py-2.5 text-sm h-10',
-    lg: 'px-6 py-3.5 text-base h-12',
-    icon: 'p-2.5 w-10 h-10',
+    md: 'px-5 py-2.5 text-sm h-11',
+    lg: 'px-8 py-4 text-base h-14',
+    icon: 'p-2.5 w-11 h-11',
   };
   return (
     <button 
       className={cn(
-        'inline-flex items-center justify-center rounded-2xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none',
+        'inline-flex items-center justify-center rounded-2xl font-bold transition-all active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none select-none',
         variants[variant],
         sizes[size],
         className
@@ -196,12 +213,12 @@ const Card = ({ children, className }: any) => (
 
 const Input = ({ label, icon: Icon, ...props }: any) => (
   <div className="space-y-2">
-    {label && <label className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider ml-1">{label}</label>}
+    {label && <label className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-widest ml-1">{label}</label>}
     <div className="relative group">
-      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-colors" />}
+      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-all duration-300" />}
       <input 
         className={cn(
-          "w-full bg-surface-muted border border-border rounded-2xl py-3 text-sm focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all dark:bg-surface-muted-dark dark:border-border-dark dark:text-text-main-dark",
+          "w-full bg-surface-muted border border-border rounded-2xl py-3.5 text-sm focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all dark:bg-surface-muted-dark dark:border-border-dark dark:text-text-main-dark",
           Icon ? "pl-11 pr-4" : "px-4"
         )}
         {...props}
@@ -279,6 +296,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
@@ -313,6 +331,7 @@ function App() {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [mobileActiveView, setMobileActiveView] = useState<'tasks' | 'dashboard' | 'ideas'>('dashboard');
   const [isTaskMenuOpen, setIsTaskMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Task Modal State
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -336,8 +355,20 @@ function App() {
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
   const [taskIdToDelete, setTaskIdToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const color = THEME_COLORS.find(c => c.name === userProfile?.themeColor) || THEME_COLORS[0];
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', color.primary);
+    root.style.setProperty('--primary-hover-color', color.hover);
+    root.style.setProperty('--primary-light-color', color.light);
+    root.style.setProperty('--primary-dark-color', color.dark);
+  }, [userProfile?.themeColor]);
 
   // Auth Listener
   useEffect(() => {
@@ -356,16 +387,22 @@ function App() {
     }
     const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setUserProfile(docSnap.data() as UserProfile);
+        const profile = docSnap.data() as UserProfile;
+        setUserProfile(profile);
+        if (profile.hasCompletedOnboarding === false) {
+          setShowOnboarding(true);
+        }
       } else {
         const newProfile: UserProfile = {
           uid: user.uid,
           email: user.email || '',
           displayName: user.displayName || '',
           photoURL: user.photoURL || '',
-          calendarSyncEnabled: false
+          calendarSyncEnabled: false,
+          hasCompletedOnboarding: false
         };
         setDoc(doc(db, 'users', user.uid), newProfile);
+        setShowOnboarding(true);
       }
     });
     return unsub;
@@ -471,6 +508,86 @@ function App() {
     setTasks([]);
     setSubtasks([]);
     setNotes([]);
+    setShowOnboarding(false);
+  };
+
+  const completeOnboarding = async () => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        hasCompletedOnboarding: true
+      });
+      setShowOnboarding(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
+  const updateThemeColor = async (colorName: string) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        themeColor: colorName
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || deleteAccountConfirm !== 'DELETE') return;
+    
+    setAuthError(null);
+    
+    const performDeletion = async () => {
+      // 1. Delete Firestore user document while authenticated
+      try {
+        await deleteDoc(doc(db, 'users', user.uid));
+      } catch (e) {
+        console.warn("Firestore user doc deletion failed (might not exist):", e);
+      }
+      
+      // 2. Delete the Auth user
+      await deleteUser(user);
+    };
+
+    try {
+      await performDeletion();
+      handleLogout();
+      setIsDeleteAccountModalOpen(false);
+    } catch (error: any) {
+      console.error("Account deletion error:", error);
+      
+      const isRecentLoginError = 
+        error.code === 'auth/requires-recent-login' || 
+        error.message?.includes('requires-recent-login') ||
+        String(error).includes('requires-recent-login');
+
+      if (isRecentLoginError) {
+        const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
+        
+        if (isGoogleUser) {
+          try {
+            // Attempt re-authentication for Google users
+            await reauthenticateWithPopup(user, googleProvider);
+            
+            // If re-auth succeeds, try the deletion sequence again
+            await performDeletion();
+            
+            handleLogout();
+            setIsDeleteAccountModalOpen(false);
+          } catch (reauthError: any) {
+            console.error("Re-authentication failed:", reauthError);
+            setAuthError("For security, please log out and log back in before deleting your account.");
+          }
+        } else {
+          // For other providers or anonymous users, they must log in again
+          setAuthError("This sensitive operation requires a recent login. Please log out and log back in to delete your account.");
+        }
+      } else {
+        setAuthError(error.message || "An unexpected error occurred during account deletion.");
+      }
+    }
   };
 
   const openAddTask = () => {
@@ -673,83 +790,95 @@ function App() {
   }
 
   if (!user) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-surface dark:bg-surface-dark p-4 overflow-hidden">
-        <Card className="max-w-md w-full p-8 space-y-6 border-none shadow-2xl dark:bg-surface-muted-dark">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-primary/20 mb-4">
-              <GraduationCap className="text-white w-10 h-10" />
-            </div>
-            <h1 className="text-3xl font-bold text-text-main dark:text-text-main-dark">Cognito</h1>
-            <p className="text-text-muted dark:text-text-muted-dark text-sm">Your minimalist cognitive command center.</p>
+    const authUI = (
+      <Card className="max-w-md w-full p-8 space-y-6 border-none shadow-2xl dark:bg-surface-muted-dark">
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-primary/20 mb-4">
+            <GraduationCap className="text-white w-10 h-10" />
           </div>
+          <h1 className="text-3xl font-bold text-text-main dark:text-text-main-dark">Cognito</h1>
+          <p className="text-text-muted dark:text-text-muted-dark text-sm">Your minimalist cognitive command center.</p>
+        </div>
 
-          {authError && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{authError}</span>
-            </div>
+        {authError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{authError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleEmailAuth} className="space-y-4">
+          {authMode === 'signup' && (
+            <Input 
+              label="Full Name" 
+              icon={UserIcon} 
+              placeholder="John Doe" 
+              value={displayName}
+              onChange={(e: any) => setDisplayName(e.target.value)}
+              required
+            />
           )}
+          <Input 
+            label="Email Address" 
+            icon={Mail} 
+            type="email" 
+            placeholder="name@university.edu" 
+            value={email}
+            onChange={(e: any) => setEmail(e.target.value)}
+            required
+          />
+          <Input 
+            label="Password" 
+            icon={Lock} 
+            type="password" 
+            placeholder="••••••••" 
+            value={password}
+            onChange={(e: any) => setPassword(e.target.value)}
+            required
+          />
+          <Button type="submit" className="w-full py-3" isLoading={isAuthLoading}>
+            {authMode === 'login' ? 'Sign In' : 'Create Account'}
+          </Button>
+        </form>
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            {authMode === 'signup' && (
-              <Input 
-                label="Full Name" 
-                icon={UserIcon} 
-                placeholder="John Doe" 
-                value={displayName}
-                onChange={(e: any) => setDisplayName(e.target.value)}
-                required
-              />
-            )}
-            <Input 
-              label="Email Address" 
-              icon={Mail} 
-              type="email" 
-              placeholder="name@university.edu" 
-              value={email}
-              onChange={(e: any) => setEmail(e.target.value)}
-              required
-            />
-            <Input 
-              label="Password" 
-              icon={Lock} 
-              type="password" 
-              placeholder="••••••••" 
-              value={password}
-              onChange={(e: any) => setPassword(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full py-3" isLoading={isAuthLoading}>
-              {authMode === 'login' ? 'Sign In' : 'Create Account'}
-            </Button>
-          </form>
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border dark:border-border-dark"></div></div>
+          <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface dark:bg-surface-muted-dark px-2 text-text-muted dark:text-text-muted-dark">Or continue with</span></div>
+        </div>
 
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border dark:border-border-dark"></div></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface dark:bg-surface-dark px-2 text-text-muted dark:text-text-muted-dark">Or continue with</span></div>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Button onClick={handleGoogleLogin} variant="secondary" className="gap-2">
+            Google
+          </Button>
+          <Button onClick={handleGuestMode} variant="secondary">
+            Guest Mode
+          </Button>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={handleGoogleLogin} variant="secondary" className="gap-2">
-              Google
-            </Button>
-            <Button onClick={handleGuestMode} variant="secondary">
-              Guest Mode
-            </Button>
-          </div>
+        <p className="text-center text-sm text-text-muted dark:text-text-muted-dark">
+          {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+          <button 
+            onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+            className="text-primary font-bold hover:underline"
+          >
+            {authMode === 'login' ? 'Sign Up' : 'Log In'}
+          </button>
+        </p>
+      </Card>
+    );
 
-          <p className="text-center text-sm text-text-muted dark:text-text-muted-dark">
-            {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
-            <button 
-              onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-              className="text-primary font-bold hover:underline"
-            >
-              {authMode === 'login' ? 'Sign Up' : 'Log In'}
-            </button>
-          </p>
-        </Card>
-      </div>
+    return (
+      <LandingPage 
+        onLogin={() => setAuthMode('login')}
+        onSignup={() => setAuthMode('signup')}
+        onGuestMode={handleGuestMode}
+        onGoogleLogin={handleGoogleLogin}
+        authUI={authUI}
+        isAuthModalOpen={isAuthModalOpen}
+        setIsAuthModalOpen={setIsAuthModalOpen}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
     );
   }
 
@@ -757,7 +886,7 @@ function App() {
     <div className="fixed inset-0 flex flex-col bg-surface dark:bg-surface-dark text-text-main dark:text-text-main-dark font-sans transition-colors duration-300 overflow-hidden">
       
       {/* Header */}
-      <header className="h-20 border-b border-border dark:border-border-dark flex items-center justify-between px-4 sm:px-6 glass z-30 shrink-0">
+      <header className="h-20 border-b border-border dark:border-border-dark flex items-center justify-between px-4 sm:px-6 glass z-[60] shrink-0">
         <div className="flex items-center gap-3">
           <motion.div 
             whileHover={{ scale: 1.02 }}
@@ -774,9 +903,89 @@ function App() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)} className="rounded-full w-9 h-9 sm:w-10 sm:h-10">
-            {darkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-text-muted" />}
-          </Button>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
+              className={cn("rounded-full w-9 h-9 sm:w-10 sm:h-10 transition-all", isSettingsOpen && "bg-surface-muted dark:bg-surface-muted-dark")}
+            >
+              <Menu className="w-5 h-5 text-text-muted" />
+            </Button>
+
+            <AnimatePresence>
+              {isSettingsOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="fixed top-24 left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-3 sm:w-64 bg-surface dark:bg-surface-muted-dark rounded-[2rem] shadow-2xl border border-border dark:border-border-dark z-[70] overflow-hidden mx-auto max-w-[320px] sm:max-w-none"
+                  >
+                    <div className="p-5 space-y-5">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">
+                          <Settings className="w-3 h-3" />
+                          Settings
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setDarkMode(!darkMode)} 
+                          className="rounded-full w-8 h-8 hover:bg-surface-muted dark:hover:bg-border-dark"
+                        >
+                          {darkMode ? <Sun className="w-4 h-4 text-yellow-500" /> : <Moon className="w-4 h-4 text-text-muted" />}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3 px-1">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">
+                          <Palette className="w-3 h-3" />
+                          Theme Color
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {THEME_COLORS.map((c) => (
+                            <button
+                              key={c.name}
+                              onClick={() => updateThemeColor(c.name)}
+                              className={cn(
+                                "w-full aspect-square rounded-xl transition-all border-2 relative group",
+                                (userProfile?.themeColor === c.name || (!userProfile?.themeColor && c.name === 'Blue'))
+                                  ? "border-primary scale-110 shadow-lg shadow-primary/20" 
+                                  : "border-transparent hover:scale-105"
+                              )}
+                              style={{ backgroundColor: c.primary }}
+                              title={c.name}
+                            >
+                              {(userProfile?.themeColor === c.name || (!userProfile?.themeColor && c.name === 'Blue')) && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border dark:border-border-dark">
+                        <button
+                          onClick={() => {
+                            setIsSettingsOpen(false);
+                            setIsDeleteAccountModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors uppercase tracking-wider"
+                        >
+                          <UserX className="w-4 h-4" />
+                          Delete Account
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
           
           <div className="h-8 w-px bg-border dark:bg-border-dark mx-0.5 sm:mx-1" />
           
@@ -801,7 +1010,7 @@ function App() {
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-surface-muted-dark group",
+            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
             isSidebarOpen ? "left-80 -translate-x-1/2" : "left-4"
           )}
           title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
@@ -817,13 +1026,13 @@ function App() {
           mobileActiveView === 'tasks' ? "flex" : "hidden lg:flex"
         )}>
           <div className="p-6 space-y-6">
-            <div className="relative p-1 bg-border/30 dark:bg-surface-muted-dark rounded-2xl flex">
+            <div className="relative p-1.5 bg-border/30 dark:bg-surface-muted-dark rounded-2xl flex">
               <motion.div 
                 layoutId="active-tab-bg"
-                className="absolute inset-y-1 bg-surface dark:bg-surface-muted-dark rounded-xl shadow-sm z-0"
+                className="absolute inset-y-1.5 bg-surface dark:bg-surface-muted-dark rounded-xl shadow-sm z-0"
                 style={{ 
-                  width: 'calc(50% - 4px)',
-                  left: activeTab === 'assignment' ? '4px' : 'calc(50% + 0px)'
+                  width: 'calc(50% - 6px)',
+                  left: activeTab === 'assignment' ? '6px' : 'calc(50% + 0px)'
                 }}
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
               />
@@ -852,19 +1061,19 @@ function App() {
               New {activeTab === 'assignment' ? 'Assignment' : 'Exam'}
             </Button>
 
-            <div className="relative flex items-center bg-surface dark:bg-surface-muted-dark rounded-2xl px-4 py-3 border border-border dark:border-border-dark shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40">
-              <Search className="w-4 h-4 text-text-muted mr-3" />
+            <div className="relative flex items-center bg-surface dark:bg-surface-muted-dark rounded-2xl px-4 py-3.5 border border-border dark:border-border-dark shadow-sm transition-all focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/40 group">
+              <Search className="w-4 h-4 text-text-muted mr-3 group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
                 placeholder={`Search ${activeTab}s...`} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-sm focus:outline-none w-full dark:text-text-main-dark placeholder:text-text-muted font-medium"
+                className="bg-transparent border-none text-sm focus:outline-none w-full dark:text-text-main-dark placeholder:text-text-muted font-bold"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="p-1 hover:bg-surface-muted dark:hover:bg-surface-muted-dark rounded-full transition-colors"
+                  className="p-1 hover:bg-surface-muted dark:hover:bg-border-dark rounded-full transition-colors"
                 >
                   <X className="w-3 h-3 text-text-muted" />
                 </button>
@@ -879,15 +1088,15 @@ function App() {
                                    (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
               return matchesTab && matchesSearch;
             }).length === 0 ? (
-              <div className="py-12 text-center px-4">
-                <div className="w-16 h-16 bg-border/30 dark:bg-surface-muted-dark rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="text-text-muted w-8 h-8" />
+              <div className="py-16 text-center px-4">
+                <div className="w-20 h-20 bg-primary/5 dark:bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 rotate-3">
+                  <BookOpen className="text-primary/40 w-10 h-10" />
                 </div>
-                <p className="text-sm font-bold text-text-muted dark:text-text-muted-dark">
+                <p className="text-base font-extrabold text-text-main dark:text-text-main-dark tracking-tight">
                   {searchQuery ? "No matching tasks" : `No ${activeTab}s yet`}
                 </p>
-                <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                  {searchQuery ? "Try a different search term." : "Get started by adding your first task."}
+                <p className="text-xs text-text-muted mt-2 leading-relaxed max-w-[200px] mx-auto">
+                  {searchQuery ? "Try a different search term or clear the filter." : "Get started by adding your first academic challenge."}
                 </p>
               </div>
             ) : (
@@ -913,21 +1122,32 @@ function App() {
                         setIsTaskMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full text-left p-4 rounded-2xl transition-all relative pr-12 border",
+                        "w-full text-left p-5 rounded-[1.5rem] transition-all relative pr-12 border-2",
                         selectedTaskId === task.id 
-                          ? "bg-surface dark:bg-surface-muted-dark border-primary/20 shadow-lg shadow-primary/5 text-primary dark:text-text-main-dark" 
-                          : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-muted dark:text-text-muted-dark"
+                          ? "bg-surface dark:bg-surface-muted-dark border-primary/20 shadow-xl shadow-primary/10 text-primary dark:text-text-main-dark scale-[1.02]" 
+                          : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-muted dark:text-text-muted-dark hover:scale-[1.01]"
                       )}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={cn(
-                          "text-[9px] font-extrabold uppercase tracking-[0.2em]",
-                          selectedTaskId === task.id ? "text-primary/70" : "text-text-muted"
-                        )}>
-                          {task.type}
-                        </span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            task.status === 'completed' ? "bg-green-500" : "bg-primary"
+                          )} />
+                          <span className={cn(
+                            "text-[10px] font-extrabold uppercase tracking-[0.2em]",
+                            selectedTaskId === task.id ? "text-primary/70" : "text-text-muted"
+                          )}>
+                            {task.type}
+                          </span>
+                        </div>
+                        {task.dueDate && (
+                          <span className="text-[9px] font-bold text-text-muted/60">
+                            {format(task.dueDate, 'MMM d')}
+                          </span>
+                        )}
                       </div>
-                      <h3 className={cn("text-sm font-bold line-clamp-1 tracking-tight", task.status === 'completed' && "line-through opacity-50")}>{task.title}</h3>
+                      <h3 className={cn("text-sm font-bold line-clamp-2 tracking-tight leading-snug", task.status === 'completed' && "line-through opacity-50")}>{task.title}</h3>
                       <div className="flex items-center gap-2 mt-2.5 text-[10px] font-medium opacity-70">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{task.dueDate ? format(task.dueDate, 'MMM d, yyyy') : 'No due date'}</span>
@@ -965,137 +1185,170 @@ function App() {
           {selectedTask ? (
             <motion.div 
               key={selectedTask.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-3xl mx-auto space-y-8 sm:space-y-10"
+              className="max-w-4xl mx-auto w-full space-y-8"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-3 text-primary font-bold text-[10px] uppercase tracking-[0.2em] bg-primary/5 dark:bg-primary/10 px-3 py-1.5 rounded-full border border-primary/10 w-fit">
-                      {selectedTask.type === 'assignment' ? <BookOpen className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
-                      <span>{selectedTask.type}</span>
-                    </div>
+              {/* Task Header Card */}
+              <div className="bento-card p-8 sm:p-10 relative">
+                <div className="absolute top-0 right-0 p-6">
+                  <div className="relative">
                     <Button 
                       variant="ghost" 
-                      size="sm" 
-                      onClick={() => toggleTaskStatus(selectedTask)} 
-                      className={cn(
-                        "gap-2 font-bold text-[10px] uppercase tracking-wider rounded-full px-3 sm:px-4",
-                        selectedTask.status === 'completed' ? "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30" : "text-text-muted hover:text-primary"
-                      )}
+                      size="icon" 
+                      onClick={() => setIsTaskMenuOpen(!isTaskMenuOpen)}
+                      className="rounded-full hover:bg-surface-muted dark:hover:bg-border-dark"
                     >
-                      {selectedTask.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                      <span>{selectedTask.status === 'completed' ? 'Completed' : 'Uncompleted'}</span>
+                      <MoreVertical className="w-5 h-5 text-text-muted" />
                     </Button>
+                    <AnimatePresence>
+                      {isTaskMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setIsTaskMenuOpen(false)} />
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="absolute right-0 mt-2 w-48 bg-surface dark:bg-surface-muted-dark rounded-2xl shadow-2xl border border-border dark:border-border-dark z-20 overflow-hidden"
+                          >
+                            <button 
+                              onClick={() => {
+                                openEditTask(selectedTask);
+                                setIsTaskMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-text-main dark:text-text-main-dark hover:bg-surface-muted dark:hover:bg-border-dark transition-colors"
+                            >
+                              <Edit3 className="w-4 h-4 text-primary" />
+                              Edit Details
+                            </button>
+                            <button 
+                              onClick={() => {
+                                confirmDelete(selectedTask.id);
+                                setIsTaskMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete Task
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-4">
+
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest",
+                        selectedTask.type === 'assignment' ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+                      )}>
+                        {selectedTask.type}
+                      </div>
+                      {selectedTask.status === 'completed' && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-extrabold uppercase tracking-widest">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Completed
+                        </div>
+                      )}
+                    </div>
                     <h1 className={cn(
-                      "text-xl sm:text-3xl xl:text-4xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark leading-tight break-words flex-1",
-                      selectedTask.status === 'completed' && "opacity-50"
+                      "text-3xl sm:text-4xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark leading-tight",
+                      selectedTask.status === 'completed' && "line-through opacity-50"
                     )}>
                       {selectedTask.title}
                     </h1>
-                    <div className="relative shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setIsTaskMenuOpen(!isTaskMenuOpen)}
-                        className="text-text-muted hover:text-primary rounded-full w-9 h-9"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </Button>
-                      <AnimatePresence>
-                        {isTaskMenuOpen && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsTaskMenuOpen(false)} />
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                              className="absolute right-0 mt-2 w-48 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-2xl shadow-xl z-50 overflow-hidden"
-                            >
-                              <button 
-                                onClick={() => {
-                                  openEditTask(selectedTask);
-                                  setIsTaskMenuOpen(false);
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main dark:text-text-main-dark hover:bg-surface-muted dark:hover:bg-surface-muted-dark transition-colors"
-                              >
-                                <Edit3 className="w-4 h-4 text-primary" />
-                                Edit Task
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  confirmDelete(selectedTask.id);
-                                  setIsTaskMenuOpen(false);
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Delete Task
-                              </button>
-                            </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
-                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-6 text-xs text-text-muted dark:text-text-muted-dark font-bold uppercase tracking-widest">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-primary" />
-                      <span>{selectedTask.dueDate ? `Due ${format(selectedTask.dueDate, 'MMMM d, yyyy')}` : 'No due date'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
-                      <span>{selectedTask.progress}% Complete</span>
-                    </div>
-                  </div>
-                </div>
 
-                {selectedTask.description && (
-                  <div className="p-4 sm:p-6 bg-surface-muted dark:bg-surface-muted-dark rounded-3xl border border-border dark:border-border-dark">
-                    <p className="text-sm text-text-main dark:text-text-main-dark leading-relaxed whitespace-pre-wrap">
-                      {selectedTask.description}
-                    </p>
+                  <div className="flex flex-wrap gap-6">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-extrabold text-text-muted uppercase tracking-widest">Deadline</span>
+                        <span className="text-sm font-bold text-text-main dark:text-text-main-dark">
+                          {selectedTask.dueDate ? format(selectedTask.dueDate, 'MMMM d, yyyy') : 'No due date'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-extrabold text-text-muted uppercase tracking-widest">Progress</span>
+                        <span className="text-sm font-bold text-text-main dark:text-text-main-dark">{selectedTask.progress}% Complete</span>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-4">
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-text-muted dark:text-text-muted-dark">
-                  <span>Task Progress</span>
-                  <span className="text-primary">{selectedTask.progress}%</span>
-                </div>
-                <div className="h-3 bg-surface-muted dark:bg-surface-muted-dark rounded-full overflow-hidden border border-border dark:border-border-dark">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${selectedTask.progress}%` }}
-                    className="h-full bg-primary shadow-[0_0_20px_rgba(79,70,229,0.4)]"
-                    transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
-                  />
                 </div>
               </div>
 
-              {/* Subtasks */}
-              <div className="space-y-6">
+              {/* Description & Progress Bento Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 bento-card p-8 space-y-4">
+                  <div className="flex items-center gap-2 text-xs-bold text-text-muted">
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Description
+                  </div>
+                  <p className="text-sm text-text-main dark:text-text-main-dark leading-relaxed whitespace-pre-wrap font-medium">
+                    {selectedTask.description || "No description provided for this task."}
+                  </p>
+                </div>
+                <div className="bento-card p-8 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-xs-bold text-text-muted">
+                      <RotateCw className="w-3.5 h-3.5" />
+                      Completion
+                    </div>
+                    <div className="relative w-24 h-24 mx-auto">
+                      <svg className="w-full h-full" viewBox="0 0 36 36">
+                        <path
+                          className="text-border dark:text-border-dark stroke-current"
+                          strokeWidth="3"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <motion.path
+                          className="text-primary stroke-current"
+                          strokeWidth="3"
+                          strokeDasharray={`${selectedTask.progress}, 100`}
+                          strokeLinecap="round"
+                          fill="none"
+                          initial={{ strokeDasharray: "0, 100" }}
+                          animate={{ strokeDasharray: `${selectedTask.progress}, 100` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xl font-extrabold text-text-main dark:text-text-main-dark">{selectedTask.progress}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-center text-text-muted font-bold uppercase tracking-widest mt-4">Task Mastery</p>
+                </div>
+              </div>
+
+              {/* Checklist Bento Card */}
+              <div className="bento-card p-8 sm:p-10 space-y-8">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
-                      <Layout className="w-4 h-4" />
+                    <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
+                      <Layout className="w-5 h-5" />
                     </div>
-                    <h2 className="text-lg font-bold tracking-tight text-text-main dark:text-text-main-dark truncate">Checklist</h2>
+                    <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark truncate">Checklist</h2>
                   </div>
                   <Button 
-                    variant="ghost" 
+                    variant="secondary" 
                     size="sm" 
                     onClick={() => setIsAddingSubtask(!isAddingSubtask)} 
-                    className="text-primary font-bold text-xs shrink-0"
+                    className="font-bold text-xs shrink-0 rounded-xl"
                   >
-                    <Plus className="w-4 h-4 mr-1" /> Add Step
+                    <Plus className="w-4 h-4 mr-1.5" /> Add Step
                   </Button>
                 </div>
                 
@@ -1106,11 +1359,11 @@ function App() {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-2xl flex flex-col xl:flex-row gap-3"
+                          className="p-5 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-2xl flex flex-col sm:flex-row gap-3"
                         >
                         <input 
                           autoFocus
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-main dark:text-text-main-dark placeholder:text-text-muted min-w-0"
+                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-main dark:text-text-main-dark placeholder:text-text-muted min-w-0 font-bold"
                           placeholder="What's the next step?"
                           value={newSubtaskTitle}
                           onChange={(e) => setNewSubtaskTitle(e.target.value)}
@@ -1126,8 +1379,11 @@ function App() {
                     )}
 
                     {subtasks.length === 0 && !isAddingSubtask ? (
-                      <div className="p-12 border-2 border-dashed border-border dark:border-border-dark rounded-3xl text-center">
-                        <p className="text-sm text-text-muted">Break this task into smaller, manageable steps.</p>
+                      <div className="p-16 border-2 border-dashed border-border dark:border-border-dark rounded-[2.5rem] text-center group hover:border-primary/30 transition-colors">
+                        <div className="w-12 h-12 bg-surface-muted dark:bg-surface-muted-dark rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-40 group-hover:opacity-100 transition-opacity">
+                          <Plus className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-text-muted">Break this task into smaller, manageable steps.</p>
                       </div>
                     ) : (
                       subtasks.map(sub => (
@@ -1139,20 +1395,20 @@ function App() {
                           exit={{ opacity: 0, scale: 0.98 }}
                           onClick={() => toggleSubtask(sub)}
                           className={cn(
-                            "group flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all",
+                            "group flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all",
                             sub.completed 
                               ? "bg-surface-muted/50 dark:bg-surface-muted-dark/30 border-transparent opacity-60" 
-                              : "bg-surface dark:bg-surface-muted-dark border-border dark:border-border-dark hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+                              : "bg-surface dark:bg-surface-muted-dark border-border dark:border-border-dark hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
                           )}
                         >
                           <div className={cn(
-                            "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                            "w-7 h-7 rounded-xl flex items-center justify-center transition-all shadow-sm",
                             sub.completed ? "bg-green-500 text-white" : "border-2 border-border dark:border-border-dark text-transparent group-hover:border-primary"
                           )}>
                             <CheckCircle2 className="w-4 h-4" />
                           </div>
                           <span className={cn(
-                            "flex-1 text-sm font-medium text-text-main dark:text-text-main-dark min-w-0 break-words", 
+                            "flex-1 text-sm font-bold text-text-main dark:text-text-main-dark min-w-0 break-words tracking-tight", 
                             sub.completed && "line-through opacity-50"
                           )}>
                             {sub.title}
@@ -1161,7 +1417,7 @@ function App() {
                             variant="ghost" 
                             size="icon" 
                             onClick={(e: any) => { e.stopPropagation(); deleteSubtask(sub.id); }}
-                            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 rounded-full"
+                            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 rounded-full w-8 h-8"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1187,7 +1443,7 @@ function App() {
         <button 
           onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
           className={cn(
-            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-surface-muted-dark group",
+            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
             isRightPanelOpen ? "lg:right-80 xl:right-96 translate-x-1/2" : "right-4"
           )}
           title={isRightPanelOpen ? "Hide Key Ideas" : "Show Key Ideas"}
@@ -1272,16 +1528,19 @@ function App() {
                         layout
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="group relative p-4 bg-surface dark:bg-surface-muted-dark/50 rounded-2xl border border-border dark:border-border-dark text-sm text-text-main dark:text-text-main-dark shadow-sm hover:border-primary/20 transition-all"
+                        className="group relative p-5 bg-surface dark:bg-surface-muted-dark/50 rounded-2xl border-2 border-border dark:border-border-dark text-sm text-text-main dark:text-text-main-dark shadow-sm hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all"
                       >
-                        <p className="leading-relaxed">{note.content}</p>
+                        <div className="flex items-start gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                          <p className="leading-relaxed font-bold tracking-tight">{note.content}</p>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="icon" 
                           onClick={() => deleteNote(note.id)}
-                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 rounded-full"
+                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 rounded-full transition-all"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </motion.div>
                     ))}
@@ -1363,27 +1622,30 @@ function App() {
                           onClick={() => setFlippedCards(prev => ({ ...prev, [note.id]: !prev[note.id] }))}
                         >
                           {/* Front */}
-                          <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-3xl p-8 flex flex-col shadow-xl shadow-primary/20 border border-white/10">
-                            <div className="flex items-center gap-2 text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+                          <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-[2rem] p-8 flex flex-col shadow-2xl shadow-primary/20 border border-white/10 overflow-hidden">
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+                            
+                            <div className="flex items-center gap-2 text-white/60 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
                               <Layers className="w-4 h-4" />
                               <span>Question</span>
                             </div>
-                            <div className="flex-1 flex items-center justify-center text-center">
-                              <p className="text-white font-bold text-lg leading-tight tracking-tight">
+                            <div className="flex-1 flex items-center justify-center text-center relative z-10">
+                              <p className="text-white font-extrabold text-xl leading-tight tracking-tight">
                                 {note.question}
                               </p>
                             </div>
 
-                            <div className="mt-4 flex flex-col items-center gap-4">
+                            <div className="mt-4 flex flex-col items-center gap-4 relative z-10">
                               {note.hint && (
                                 <div className="w-full">
                                   {showHint ? (
                                     <motion.div 
                                       initial={{ opacity: 0, y: 5 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      className="px-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10"
+                                      className="px-5 py-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg"
                                     >
-                                      <p className="text-[11px] text-white/90 italic text-center">
+                                      <p className="text-[11px] text-white/90 italic text-center font-bold">
                                         {note.hint}
                                       </p>
                                     </motion.div>
@@ -1393,33 +1655,33 @@ function App() {
                                         e.stopPropagation();
                                         setRevealedHints(prev => ({ ...prev, [note.id]: true }));
                                       }}
-                                      className="mx-auto flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-bold uppercase tracking-widest transition-all border border-white/10"
+                                      className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/10 active:scale-95"
                                     >
-                                      <HelpCircle className="w-3.5 h-3.5" />
+                                      <HelpCircle className="w-4 h-4" />
                                       Show Hint
                                     </button>
                                   )}
                                 </div>
                               )}
-                              <div className="flex items-center gap-2 text-[9px] text-white/50 font-bold uppercase tracking-[0.3em]">
-                                <RotateCw className="w-3 h-3" />
+                              <div className="flex items-center gap-2 text-[9px] text-white/50 font-extrabold uppercase tracking-[0.3em]">
+                                <RotateCw className="w-3.5 h-3.5" />
                                 Flip for answer
                               </div>
                             </div>
                           </div>
 
                           {/* Back */}
-                          <div className="absolute inset-0 backface-hidden bg-surface dark:bg-surface-muted-dark rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-xl border border-border dark:border-border-dark rotate-y-180">
-                            <div className="absolute top-6 left-6 text-text-muted/30 dark:text-text-muted-dark/30">
-                              <Eye className="w-5 h-5" />
+                          <div className="absolute inset-0 backface-hidden bg-surface dark:bg-surface-muted-dark rounded-[2rem] p-8 flex flex-col items-center justify-center text-center shadow-2xl border-2 border-border dark:border-border-dark rotate-y-180 overflow-hidden">
+                            <div className="absolute top-8 left-8 text-text-muted/20 dark:text-text-muted-dark/20">
+                              <Lightbulb className="w-8 h-8" />
                             </div>
                             <div className="flex-1 flex items-center justify-center">
-                              <p className="text-text-main dark:text-text-main-dark font-extrabold text-xl leading-tight tracking-tight">
+                              <p className="text-text-main dark:text-text-main-dark font-extrabold text-2xl leading-tight tracking-tight">
                                 {note.answer}
                               </p>
                             </div>
-                            <div className="mt-6 flex items-center gap-2 text-[9px] text-text-muted dark:text-text-muted-dark font-bold uppercase tracking-[0.3em]">
-                              <RotateCw className="w-3 h-3" />
+                            <div className="mt-6 flex items-center gap-2 text-[9px] text-text-muted dark:text-text-muted-dark font-extrabold uppercase tracking-[0.3em]">
+                              <RotateCw className="w-3.5 h-3.5" />
                               Flip back
                             </div>
                           </div>
@@ -1559,6 +1821,79 @@ function App() {
           </div>
         </div>
       </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal 
+        isOpen={isDeleteAccountModalOpen} 
+        onClose={() => {
+          setIsDeleteAccountModalOpen(false);
+          setDeleteAccountConfirm('');
+        }} 
+        title="Delete Account"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center text-red-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-red-900 dark:text-red-200">Critical Action</p>
+              <p className="text-xs text-red-700 dark:text-red-400">This will permanently delete your account and all associated data. This cannot be undone.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em] ml-1">
+              Type "DELETE" to confirm
+            </label>
+            <input 
+              type="text"
+              value={deleteAccountConfirm}
+              onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+              placeholder="DELETE"
+              className="w-full bg-surface-muted border border-border rounded-2xl py-3 px-4 text-sm focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all dark:bg-surface-muted-dark dark:border-border-dark dark:text-text-main-dark"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              variant="secondary" 
+              className="flex-1" 
+              onClick={() => {
+                setIsDeleteAccountModalOpen(false);
+                setDeleteAccountConfirm('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              className="flex-1" 
+              onClick={handleDeleteAccount}
+              disabled={deleteAccountConfirm !== 'DELETE'}
+            >
+              Delete Forever
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Onboarding Flow */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <Onboarding 
+            onComplete={completeOnboarding} 
+            onStepChange={(stepIndex) => {
+              // On mobile, switch views to match the spotlight
+              if (window.innerWidth < 1024) {
+                if (stepIndex === 1 || stepIndex === 2) setMobileActiveView('tasks');
+                if (stepIndex === 3) setMobileActiveView('dashboard');
+                if (stepIndex === 4) setMobileActiveView('ideas');
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

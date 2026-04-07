@@ -71,13 +71,15 @@ service cloud.firestore {
     }
 
     function isValidUser(data) {
-      let allowedFields = ['uid', 'email', 'displayName', 'photoURL', 'calendarSyncEnabled'];
+      let allowedFields = ['uid', 'email', 'displayName', 'photoURL', 'calendarSyncEnabled', 'hasCompletedOnboarding', 'themeColor'];
       return data.keys().hasOnly(allowedFields) &&
              data.uid == request.auth.uid &&
-             isValidString(data.email, 255) &&
+             data.email is string && data.email.size() <= 255 &&
              (!('displayName' in data) || data.displayName is string) &&
              (!('photoURL' in data) || data.photoURL is string) &&
-             (!('calendarSyncEnabled' in data) || data.calendarSyncEnabled is bool);
+             (!('calendarSyncEnabled' in data) || data.calendarSyncEnabled is bool) &&
+             (!('hasCompletedOnboarding' in data) || data.hasCompletedOnboarding is bool) &&
+             (!('themeColor' in data) || data.themeColor is string);
     }
 
     // ===============================================================

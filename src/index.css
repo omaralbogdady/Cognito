@@ -7,10 +7,10 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-primary: #3B82F6;
-  --color-primary-hover: #2563EB;
-  --color-primary-light: #EFF6FF;
-  --color-primary-dark: #1D4ED8;
+  --color-primary: var(--primary-color, #3B82F6);
+  --color-primary-hover: var(--primary-hover-color, #2563EB);
+  --color-primary-light: var(--primary-light-color, #EFF6FF);
+  --color-primary-dark: var(--primary-dark-color, #1D4ED8);
   
   --color-surface: #F5F7FA;
   --color-surface-dark: #121212;
@@ -36,7 +36,7 @@
   }
 
   body {
-    @apply h-full bg-surface text-text-main font-sans selection:bg-primary/20 selection:text-primary overflow-hidden;
+    @apply h-full bg-surface text-text-main font-sans selection:bg-primary/20 selection:text-primary;
   }
 
   .dark body {
@@ -45,22 +45,50 @@
 
   /* Custom Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-border dark:bg-border-dark rounded-full;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-text-muted/30 dark:bg-text-muted-dark/30;
+    @apply bg-border/50 dark:bg-border-dark/50 rounded-full hover:bg-primary/30 transition-colors;
   }
 
   /* Glass Effect */
   .glass {
-    @apply bg-surface/70 dark:bg-surface-dark/70 backdrop-blur-md border-white/20 dark:border-border-dark/50;
+    @apply bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border-white/20 dark:border-border-dark/50;
+  }
+
+  /* Bento Grid & Card Styles */
+  .bento-card {
+    @apply bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden;
+  }
+
+  .bento-card-active {
+    @apply ring-2 ring-primary/20 border-primary/30 shadow-2xl shadow-primary/10;
+  }
+
+  /* Interactive Elements */
+  .interactive-scale {
+    @apply transition-transform duration-200 active:scale-95;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  /* Typography Enhancements */
+  .heading-xl {
+    @apply text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1];
+  }
+
+  .heading-lg {
+    @apply text-2xl md:text-3xl font-extrabold tracking-tight leading-tight;
+  }
+
+  .text-xs-bold {
+    @apply text-[10px] font-extrabold uppercase tracking-[0.2em];
   }
 
   /* 3D Flashcard Utilities */

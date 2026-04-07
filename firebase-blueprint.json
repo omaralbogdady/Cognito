@@ -10,7 +10,9 @@
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "calendarSyncEnabled": { "type": "boolean" }
+        "calendarSyncEnabled": { "type": "boolean" },
+        "hasCompletedOnboarding": { "type": "boolean" },
+        "themeColor": { "type": "string" }
       },
       "required": ["uid", "email"]
     },
