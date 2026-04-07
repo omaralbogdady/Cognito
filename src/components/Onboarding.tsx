@@ -57,7 +57,7 @@ const steps = [
   {
     title: "Personalize Your Space",
     description: "Switch to dark mode or manage your profile here. You're all set to excel!",
-    target: "header .flex.items-center.gap-2",
+    target: "#hamburger-menu",
     icon: GraduationCap,
     color: "text-blue-500"
   }
@@ -112,13 +112,45 @@ export const Onboarding = ({ onComplete, onStepChange }: OnboardingProps) => {
   const Icon = step.icon;
 
   return (
-    <div className="fixed inset-0 z-[200] pointer-events-none">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] pointer-events-none"
+    >
       {/* Spotlight Overlay */}
-      <div className="absolute inset-0 bg-surface-dark/60 backdrop-blur-[4px] transition-opacity duration-700" style={{
-        clipPath: step.target === 'body' 
-          ? 'none' 
-          : `polygon(0% 0%, 0% 100%, ${coords.left}px 100%, ${coords.left}px ${coords.top}px, ${coords.left + coords.width}px ${coords.top}px, ${coords.left + coords.width}px ${coords.top + coords.height}px, ${coords.left}px ${coords.top + coords.height}px, ${coords.left}px 100%, 100% 100%, 100% 0%)`
-      }} />
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-surface-dark/60 backdrop-blur-[4px] transition-opacity duration-700" 
+        style={{
+          clipPath: step.target === 'body' 
+            ? 'none' 
+            : `polygon(0% 0%, 0% 100%, ${coords.left}px 100%, ${coords.left}px ${coords.top}px, ${coords.left + coords.width}px ${coords.top}px, ${coords.left + coords.width}px ${coords.top + coords.height}px, ${coords.left}px ${coords.top + coords.height}px, ${coords.left}px 100%, 100% 100%, 100% 0%)`
+        }} 
+      />
+
+      {/* Spotlight Outline Hue */}
+      {step.target !== 'body' && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ 
+            top: coords.top - 4, 
+            left: coords.left - 4, 
+            width: coords.width + 8, 
+            height: coords.height + 8,
+            opacity: 1,
+            scale: 1
+          }}
+          exit={{ opacity: 0, scale: 1.1 }}
+          className="absolute border-4 border-primary/40 rounded-2xl shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] z-[201]"
+          style={{
+            boxShadow: '0 0 20px 2px var(--primary-color)',
+            borderColor: 'var(--primary-color)'
+          }}
+        />
+      )}
 
       {/* Floating Card - Now always centered */}
       <div className="absolute inset-0 flex items-center justify-center p-6">
@@ -126,6 +158,7 @@ export const Onboarding = ({ onComplete, onStepChange }: OnboardingProps) => {
           layout
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 40, filter: 'blur(10px)' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           className="pointer-events-auto w-full max-w-[380px] bg-surface dark:bg-surface-muted-dark rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.4)] border-2 border-primary/20 dark:border-primary/10 overflow-hidden glass"
         >
@@ -205,6 +238,6 @@ export const Onboarding = ({ onComplete, onStepChange }: OnboardingProps) => {
         </div>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };

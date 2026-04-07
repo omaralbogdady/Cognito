@@ -905,6 +905,7 @@ function App() {
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="relative">
             <Button 
+              id="hamburger-menu"
               variant="ghost" 
               size="icon" 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
@@ -1011,7 +1012,8 @@ function App() {
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
             "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
-            isSidebarOpen ? "left-80 -translate-x-1/2" : "left-4"
+            isSidebarOpen ? "left-80 -translate-x-1/2" : "left-4",
+            showOnboarding && "opacity-0 pointer-events-none"
           )}
           title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
         >
@@ -1444,7 +1446,8 @@ function App() {
           onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
           className={cn(
             "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
-            isRightPanelOpen ? "lg:right-80 xl:right-96 translate-x-1/2" : "right-4"
+            isRightPanelOpen ? "lg:right-80 xl:right-96 translate-x-1/2" : "right-4",
+            showOnboarding && "opacity-0 pointer-events-none"
           )}
           title={isRightPanelOpen ? "Hide Key Ideas" : "Show Key Ideas"}
         >
@@ -1889,6 +1892,13 @@ function App() {
                 if (stepIndex === 1 || stepIndex === 2) setMobileActiveView('tasks');
                 if (stepIndex === 3) setMobileActiveView('dashboard');
                 if (stepIndex === 4) setMobileActiveView('ideas');
+              }
+              
+              // Open settings for the personalization step
+              if (stepIndex === 5) {
+                setIsSettingsOpen(true);
+              } else if (isSettingsOpen) {
+                setIsSettingsOpen(false);
               }
             }}
           />
