@@ -66,7 +66,7 @@ import {
   UserX,
   Calendar
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Variants } from 'motion/react';
 import { cn } from './lib/utils';
 import { Task, SubTask, Note, TaskType, UserProfile } from './types';
 import { format } from 'date-fns';
@@ -85,6 +85,30 @@ const THEME_COLORS = [
   { name: 'Orange', primary: '#F97316', hover: '#EA580C', light: '#FFF7ED', dark: '#C2410C' },
   { name: 'Purple', primary: '#8B5CF6', hover: '#7C3AED', light: '#F5F3FF', dark: '#6D28D9' },
 ];
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const staggerItem: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 24 
+    } 
+  }
+};
 
 // --- Error Handling ---
 
@@ -179,17 +203,21 @@ const Button = ({
     secondary: 'bg-surface text-text-muted border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-muted-dark dark:border-border-dark dark:hover:bg-border-dark shadow-sm hover:shadow-md',
     ghost: 'bg-transparent text-text-muted hover:bg-surface-muted dark:text-text-muted-dark dark:hover:bg-surface-muted-dark/80',
     danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-100 dark:border-red-900/30',
+    glass: 'glass hover:bg-white/90 dark:hover:bg-surface-muted-dark/90 text-text-main dark:text-text-main-dark'
   };
   const sizes: any = {
     sm: 'px-3 py-1.5 text-xs h-8',
     md: 'px-5 py-2.5 text-sm h-11',
-    lg: 'px-8 py-4 text-base h-14',
+    lg: 'px-8 py-4 text-base h-14 font-extrabold',
     icon: 'p-2.5 w-11 h-11',
   };
   return (
-    <button 
+    <motion.button 
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        'inline-flex items-center justify-center rounded-2xl font-bold transition-all active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none select-none',
+        'inline-flex items-center justify-center rounded-2xl font-bold transition-all disabled:opacity-50 disabled:pointer-events-none select-none',
         variants[variant],
         sizes[size],
         className
@@ -205,7 +233,7 @@ const Button = ({
         />
       ) : null}
       {children}
-    </button>
+    </motion.button>
   );
 };
 
@@ -214,6 +242,97 @@ const Card = ({ children, className }: any) => (
     {children}
   </div>
 );
+
+const Flashcard = ({ card }: { card: Note }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const { deleteNote } = (window as any).appHandlers || {};
+
+  return (
+    <div className="group relative perspective-1000 h-64">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={(e: any) => { e.stopPropagation(); deleteNote?.(card.id); }}
+        className="absolute -top-2 -right-2 z-20 opacity-0 group-hover:opacity-100 bg-surface dark:bg-surface-muted-dark shadow-lg text-text-muted hover:text-red-500 rounded-full"
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+      
+      <motion.div 
+        className="w-full h-full relative preserve-3d cursor-pointer"
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        onClick={() => setIsFlipped(!isFlipped)}
+      >
+        {/* Front */}
+        <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-[2rem] p-8 flex flex-col shadow-2xl shadow-primary/20 border border-white/10 overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+          
+          <div className="flex items-center gap-2 text-white/60 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
+            <Layers className="w-4 h-4" />
+            <span>Question</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center text-center relative z-10">
+            <p className="text-white font-extrabold text-xl leading-tight tracking-tight">
+              {card.question}
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center gap-4 relative z-10">
+            {card.hint && (
+              <div className="w-full">
+                {showHint ? (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="px-5 py-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg"
+                  >
+                    <p className="text-[11px] text-white/90 italic text-center font-bold">
+                      {card.hint}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowHint(true);
+                    }}
+                    className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/10 active:scale-95"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                    Show Hint
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-[9px] text-white/50 font-extrabold uppercase tracking-[0.3em]">
+              <RotateCw className="w-3.5 h-3.5" />
+              Flip for answer
+            </div>
+          </div>
+        </div>
+
+        {/* Back */}
+        <div className="absolute inset-0 backface-hidden bg-surface dark:bg-surface-muted-dark rounded-[2rem] p-8 flex flex-col items-center justify-center text-center shadow-2xl border-2 border-border dark:border-border-dark rotate-y-180 overflow-hidden">
+          <div className="absolute top-8 left-8 text-text-muted/20 dark:text-text-muted-dark/20">
+            <Lightbulb className="w-8 h-8" />
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-text-main dark:text-text-main-dark font-extrabold text-2xl leading-tight tracking-tight">
+              {card.answer}
+            </p>
+          </div>
+          <div className="mt-6 flex items-center gap-2 text-[9px] text-text-muted dark:text-text-muted-dark font-extrabold uppercase tracking-[0.3em]">
+            <RotateCw className="w-3.5 h-3.5" />
+            Flip back
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const Input = ({ label, icon: Icon, ...props }: any) => (
   <div className="space-y-2">
@@ -532,6 +651,12 @@ function App() {
     setNotes([]);
     setShowOnboarding(false);
   };
+
+  useEffect(() => {
+    (window as any).appHandlers = {
+      deleteNote: (id: string) => deleteNote(id)
+    };
+  }, [notes]);
 
   const completeOnboarding = async () => {
     setShowOnboarding(false);
@@ -1133,6 +1258,7 @@ function App() {
                             />
                           </button>
                         </div>
+
                       </div>
 
                       <div className="pt-2 border-t border-border dark:border-border-dark">
@@ -1249,40 +1375,46 @@ function App() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2 custom-scrollbar">
-            {tasks.filter(t => {
-              const matchesTab = t.type === activeTab;
-              const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                   (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-              return matchesTab && matchesSearch;
-            }).length === 0 ? (
-              <div className="py-16 text-center px-4">
-                <div className="w-20 h-20 bg-primary/5 dark:bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                  <BookOpen className="text-primary/40 w-10 h-10" />
-                </div>
-                <p className="text-base font-extrabold text-text-main dark:text-text-main-dark tracking-tight">
-                  {searchQuery ? "No matching tasks" : `No ${activeTab}s yet`}
-                </p>
-                <p className="text-xs text-text-muted mt-2 leading-relaxed max-w-[200px] mx-auto">
-                  {searchQuery ? "Try a different search term or clear the filter." : "Get started by adding your first academic challenge."}
-                </p>
-              </div>
-            ) : (
-              <AnimatePresence mode="popLayout">
+              <motion.div 
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="flex-1 overflow-y-auto px-4 pb-6 space-y-2 custom-scrollbar"
+              >
                 {tasks.filter(t => {
                   const matchesTab = t.type === activeTab;
                   const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                        (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
                   return matchesTab && matchesSearch;
-                }).map(task => (
-                  <motion.div 
-                    key={task.id} 
-                    layout
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative group"
-                  >
+                }).length === 0 ? (
+                  <motion.div variants={staggerItem} className="py-16 text-center px-4">
+                    <div className="w-20 h-20 bg-primary/5 dark:bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                      <BookOpen className="text-primary/40 w-10 h-10" />
+                    </div>
+                    <p className="text-base font-extrabold text-text-main dark:text-text-main-dark tracking-tight">
+                      {searchQuery ? "No matching tasks" : `No ${activeTab}s yet`}
+                    </p>
+                    <p className="text-xs text-text-muted mt-2 leading-relaxed max-w-[200px] mx-auto">
+                      {searchQuery ? "Try a different search term or clear the filter." : "Get started by adding your first academic challenge."}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {tasks.filter(t => {
+                      const matchesTab = t.type === activeTab;
+                      const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                           (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+                      return matchesTab && matchesSearch;
+                    }).map(task => (
+                      <motion.div 
+                        key={task.id} 
+                        layout
+                        variants={staggerItem}
+                        initial="hidden"
+                        animate="show"
+                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                        className="relative group"
+                      >
                     <button
                       onClick={() => {
                         setSelectedTaskId(task.id);
@@ -1356,7 +1488,7 @@ function App() {
                 ))}
               </AnimatePresence>
             )}
-          </div>
+          </motion.div>
         </aside>
 
         {/* Center Panel - Task Details */}
@@ -1552,10 +1684,16 @@ function App() {
                   </Button>
                 </div>
                 
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
+                <motion.div 
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-3"
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
                     {isAddingSubtask && (
                         <motion.div 
+                          key="add-subtask"
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
@@ -1579,20 +1717,18 @@ function App() {
                     )}
 
                     {subtasks.length === 0 && !isAddingSubtask ? (
-                      <div className="p-16 border-2 border-dashed border-border dark:border-border-dark rounded-[2.5rem] text-center group hover:border-primary/30 transition-colors">
+                      <motion.div variants={staggerItem} className="p-16 border-2 border-dashed border-border dark:border-border-dark rounded-[2.5rem] text-center group hover:border-primary/30 transition-colors">
                         <div className="w-12 h-12 bg-surface-muted dark:bg-surface-muted-dark rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-40 group-hover:opacity-100 transition-opacity">
                           <Plus className="w-6 h-6" />
                         </div>
                         <p className="text-sm font-bold text-text-muted">Break this task into smaller, manageable steps.</p>
-                      </div>
+                      </motion.div>
                     ) : (
                       subtasks.map(sub => (
                         <motion.div 
                           key={sub.id}
                           layout
-                          initial={{ opacity: 0, scale: 0.98 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.98 }}
+                          variants={staggerItem}
                           onClick={() => toggleSubtask(sub)}
                           className={cn(
                             "group flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all",
@@ -1625,7 +1761,7 @@ function App() {
                       ))
                     )}
                   </AnimatePresence>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
           ) : (
@@ -1714,14 +1850,20 @@ function App() {
                   </div>
                 </div>
                 
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
+                <motion.div 
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-3"
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
                     {isAddingConcept && (
                       <motion.div 
+                        key="add-concept"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-4 bg-surface dark:bg-surface-muted-dark rounded-2xl border border-primary/20 shadow-lg shadow-primary/5"
+                        className="p-4 bg-surface dark:bg-surface-muted-dark rounded-2xl border-2 border-primary/20 shadow-xl shadow-primary/5"
                       >
                         <textarea 
                           autoFocus
@@ -1748,8 +1890,7 @@ function App() {
                       <motion.div 
                         key={note.id} 
                         layout
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        variants={staggerItem}
                         className="group relative p-5 bg-surface dark:bg-surface-muted-dark/50 rounded-2xl border-2 border-border dark:border-border-dark text-sm text-text-main dark:text-text-main-dark shadow-sm hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all"
                       >
                         <div className="flex items-start gap-3">
@@ -1767,7 +1908,7 @@ function App() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
-                </div>
+                </motion.div>
               </div>
 
               {/* Flashcards Header */}
@@ -1832,98 +1973,21 @@ function App() {
                 </motion.div>
               )}
 
-              <div className="space-y-6">
+              <motion.div 
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 gap-6">
-                  {notes.filter(n => n.type === 'flashcard').map(note => {
-                    const isFlipped = flippedCards[note.id];
-                    const showHint = revealedHints[note.id];
-
-                    return (
-                      <div key={note.id} className="group relative perspective-1000 h-64">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={(e: any) => { e.stopPropagation(); deleteNote(note.id); }}
-                          className="absolute -top-2 -right-2 z-20 opacity-0 group-hover:opacity-100 bg-surface dark:bg-surface-muted-dark shadow-lg text-text-muted hover:text-red-500 rounded-full"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        
-                        <motion.div 
-                          className="w-full h-full relative preserve-3d cursor-pointer"
-                          animate={{ rotateY: isFlipped ? 180 : 0 }}
-                          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                          onClick={() => setFlippedCards(prev => ({ ...prev, [note.id]: !prev[note.id] }))}
-                        >
-                          {/* Front */}
-                          <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-[2rem] p-8 flex flex-col shadow-2xl shadow-primary/20 border border-white/10 overflow-hidden">
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-                            
-                            <div className="flex items-center gap-2 text-white/60 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
-                              <Layers className="w-4 h-4" />
-                              <span>Question</span>
-                            </div>
-                            <div className="flex-1 flex items-center justify-center text-center relative z-10">
-                              <p className="text-white font-extrabold text-xl leading-tight tracking-tight">
-                                {note.question}
-                              </p>
-                            </div>
-
-                            <div className="mt-4 flex flex-col items-center gap-4 relative z-10">
-                              {note.hint && (
-                                <div className="w-full">
-                                  {showHint ? (
-                                    <motion.div 
-                                      initial={{ opacity: 0, y: 5 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      className="px-5 py-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg"
-                                    >
-                                      <p className="text-[11px] text-white/90 italic text-center font-bold">
-                                        {note.hint}
-                                      </p>
-                                    </motion.div>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setRevealedHints(prev => ({ ...prev, [note.id]: true }));
-                                      }}
-                                      className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/10 active:scale-95"
-                                    >
-                                      <HelpCircle className="w-4 h-4" />
-                                      Show Hint
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 text-[9px] text-white/50 font-extrabold uppercase tracking-[0.3em]">
-                                <RotateCw className="w-3.5 h-3.5" />
-                                Flip for answer
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Back */}
-                          <div className="absolute inset-0 backface-hidden bg-surface dark:bg-surface-muted-dark rounded-[2rem] p-8 flex flex-col items-center justify-center text-center shadow-2xl border-2 border-border dark:border-border-dark rotate-y-180 overflow-hidden">
-                            <div className="absolute top-8 left-8 text-text-muted/20 dark:text-text-muted-dark/20">
-                              <Lightbulb className="w-8 h-8" />
-                            </div>
-                            <div className="flex-1 flex items-center justify-center">
-                              <p className="text-text-main dark:text-text-main-dark font-extrabold text-2xl leading-tight tracking-tight">
-                                {note.answer}
-                              </p>
-                            </div>
-                            <div className="mt-6 flex items-center gap-2 text-[9px] text-text-muted dark:text-text-muted-dark font-extrabold uppercase tracking-[0.3em]">
-                              <RotateCw className="w-3.5 h-3.5" />
-                              Flip back
-                            </div>
-                          </div>
-                        </motion.div>
-                      </div>
-                    );
-                  })}
-                  {notes.filter(n => n.type === 'flashcard').length === 0 && !isAddingFlashcard && (
+                  {notes.filter(n => n.type === 'flashcard').map(note => (
+                    <motion.div key={note.id} variants={staggerItem}>
+                      <Flashcard card={note} />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+                   {notes.filter(n => n.type === 'flashcard').length === 0 && !isAddingFlashcard && (
                     <div className="py-12 text-center border-2 border-dashed border-border dark:border-border-dark rounded-3xl">
                       <Layers className="w-10 h-10 text-text-muted/30 mx-auto mb-3" />
                       <p className="text-sm font-bold text-text-muted">No flashcards yet</p>
@@ -1932,9 +1996,7 @@ function App() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-        </aside>
+            </aside>
 
       </main>
 
