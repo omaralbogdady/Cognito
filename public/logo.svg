@@ -1,18 +1,7 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="112" fill="#3B82F6"/>
-  <g transform="translate(64, 64) scale(0.75)">
-    <!-- Open Book -->
-    <path d="M256 460V310M256 460C210 460 140 460 100 420V320C140 340 210 340 256 340C302 340 372 340 412 320V420C372 440 302 440 256 460Z" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    
-    <!-- Central Star -->
-    <path d="M256 190L272 245L327 261L272 277L256 332L240 277L185 261L240 245L256 190Z" fill="white"/>
-    
-    <!-- Graduation Cap -->
-    <path d="M440 140L256 50L72 140L256 230L440 140Z" fill="none" stroke="white" stroke-width="24" stroke-linejoin="round"/>
-    <path d="M145 175V215C145 245 195 265 256 265C317 265 367 245 367 215V175" stroke="white" stroke-width="24" stroke-linejoin="round" fill="none"/>
-    
-    <!-- Tassel on the LEFT -->
-    <path d="M120 125V210" stroke="white" stroke-width="14" stroke-linecap="round"/>
-    <circle cx="120" cy="215" r="14" fill="white"/>
-  </g>
+  <path d="M430 190L256 100L82 190L256 280L430 190Z" fill="white" stroke="white" stroke-width="20" stroke-linejoin="round"/>
+  <path d="M140 220V280C140 310 190 335 256 335C322 335 372 310 372 280V220" stroke="white" stroke-width="20" stroke-linejoin="round" fill="none"/>
+  <path d="M430 190V290" stroke="white" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="430" cy="300" r="15" fill="white"/>
 </svg>
