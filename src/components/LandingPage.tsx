@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  GraduationCap, 
   CheckCircle2, 
   BookOpen, 
   BrainCircuit, 
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { Logo } from './Logo';
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -76,9 +76,7 @@ export const LandingPage = ({
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 h-20 border-b border-border/40 dark:border-border-dark/40 bg-white/70 dark:bg-black/70 backdrop-blur-xl z-50 px-6 sm:px-12 flex items-center justify-between">
         <div className="flex items-center gap-2 group cursor-pointer">
-          <div className="w-9 h-9 bg-primary dark:bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <GraduationCap className="text-white w-5 h-5" />
-          </div>
+          <Logo className="w-10 h-10 shadow-xl shadow-primary/20 rounded-2xl" />
           <span className="font-bold text-xl tracking-tight text-text-main dark:text-text-main-dark italic">Lumina</span>
         </div>
         
@@ -420,52 +418,29 @@ export const LandingPage = ({
       {/* Footer */}
       <footer className="py-16 px-6 sm:px-12 border-t border-border dark:border-border-dark bg-surface-muted/50 dark:bg-surface-dark">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-start justify-between gap-12 mb-16">
-            <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center gap-12 mb-16">
+            <div className="space-y-6 flex flex-col items-center text-center">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
-                  <GraduationCap className="text-white w-5 h-5" />
-                </div>
+                <Logo className="w-14 h-14 rounded-2xl shadow-xl shadow-primary/10" />
                 <span className="font-bold text-xl tracking-tight italic">Lumina</span>
               </div>
               <p className="text-text-muted text-sm max-w-xs leading-relaxed">
                 The modern student command center for high-performance learning. Built with passion for the next generation.
               </p>
               <div className="flex items-center gap-4">
-                <a href="#" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><Twitter className="w-4 h-4" /></a>
-                <a href="#" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><Github className="w-4 h-4" /></a>
-                <a href="#" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><UserIcon className="w-4 h-4" /></a>
+                <a href="https://x.com/IntriguingMango" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><Twitter className="w-4 h-4" /></a>
+                <a href="https://github.com/omaralbogdady/Lumina" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><Github className="w-4 h-4" /></a>
+                <a href="https://byomar.carrd.co/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark text-text-muted hover:text-primary transition-colors"><UserIcon className="w-4 h-4" /></a>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-12 md:gap-24">
-               <div className="space-y-6">
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-primary">Platform</h4>
-                  <ul className="space-y-4 text-sm font-bold text-text-muted">
-                    <li><a href="#" className="hover:text-text-main transition-colors">Workspace</a></li>
-                    <li><a href="#" className="hover:text-text-main transition-colors">AI Assistant</a></li>
-                    <li><a href="#" className="hover:text-text-main transition-colors">Calendar Sync</a></li>
-                  </ul>
-               </div>
-               <div className="space-y-6">
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-primary">Resources</h4>
-                  <ul className="space-y-4 text-sm font-bold text-text-muted">
-                    <li><a href="#" className="hover:text-text-main transition-colors">Documentation</a></li>
-                    <li><a href="#" className="hover:text-text-main transition-colors">Study Tips</a></li>
-                    <li><a href="#" className="hover:text-text-main transition-colors">Privacy</a></li>
-                  </ul>
-               </div>
             </div>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center justify-between pt-12 border-t border-border dark:border-white/5 gap-6">
-            <div className="text-[10px] uppercase tracking-widest font-black text-text-muted/40">
+            <div className="text-[10px] uppercase tracking-widest font-black text-text-muted/40 dark:text-text-main-dark/50">
               © 2026 Lumina Interactive. All rights reserved.
             </div>
-            <div className="flex items-center gap-8 text-[10px] uppercase tracking-widest font-black text-text-muted/40">
-              <a href="#" className="hover:text-text-main">Status</a>
-              <a href="#" className="hover:text-text-main">Legal</a>
-              <a href="#" className="hover:text-text-main">Cookies</a>
+            <div className="text-[10px] uppercase tracking-widest font-black text-text-muted/40 font-bold dark:text-text-main-dark/50">
+              Made by Omar Albogdady, April 2026
             </div>
           </div>
         </div>

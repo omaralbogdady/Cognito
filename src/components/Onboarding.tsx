@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  GraduationCap, 
   BookOpen, 
   BrainCircuit, 
   CheckCircle2, 
@@ -12,6 +11,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Logo } from './Logo';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -23,7 +23,7 @@ const steps = [
     title: "Welcome to Lumina",
     description: "Your new minimalist command center for academic mastery. Let's show you how to get the most out of it.",
     target: "body",
-    icon: GraduationCap,
+    icon: (props: any) => <Logo showBackground={false} {...props} />,
     color: "text-blue-500"
   },
   {
@@ -58,7 +58,7 @@ const steps = [
     title: "Personalize Your Space",
     description: "Switch to dark mode or manage your profile here. You're all set to excel!",
     target: "#hamburger-menu",
-    icon: GraduationCap,
+    icon: (props: any) => <Logo showBackground={false} {...props} />,
     color: "text-blue-500"
   }
 ];

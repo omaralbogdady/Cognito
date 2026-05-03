@@ -35,7 +35,6 @@ import {
 import { 
   Layout, 
   BookOpen, 
-  GraduationCap, 
   Plus, 
   CheckCircle2, 
   Circle, 
@@ -72,6 +71,7 @@ import { Task, SubTask, Note, TaskType, UserProfile, RecurrenceType } from './ty
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
 import { LandingPage } from './components/LandingPage';
 import { Onboarding } from './components/Onboarding';
+import { Logo } from './components/Logo';
 import { explainTopic, generateConcepts, generateFlashcards, GeminiError, AIErrorType } from './services/geminiService';
 import { Type } from "@google/genai";
 import Markdown from 'react-markdown';
@@ -1096,9 +1096,7 @@ function App() {
     const authUI = (
       <Card className="max-w-md w-full p-8 space-y-6 border-none shadow-2xl dark:bg-surface-muted-dark">
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-primary/20 mb-4">
-            <GraduationCap className="text-white w-10 h-10" />
-          </div>
+          <Logo className="w-16 h-16 mx-auto shadow-lg shadow-primary/20 mb-4 rounded-2xl" />
           <h1 className="text-3xl font-bold text-text-main dark:text-text-main-dark">Lumina</h1>
           <p className="text-text-muted dark:text-text-muted-dark text-sm">Your minimalist cognitive command center.</p>
         </div>
@@ -1195,9 +1193,7 @@ function App() {
             whileHover={{ scale: 1.02 }}
             className="flex items-center gap-2 sm:gap-3 cursor-default"
           >
-            <div className="w-9 h-9 sm:w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <GraduationCap className="text-white w-5 h-5 sm:w-6 h-6" />
-            </div>
+            <Logo className="w-9 h-9 sm:w-10 h-10 shadow-lg shadow-primary/30 rounded-2xl" />
             <div className="flex flex-col">
               <span className="font-extrabold text-lg sm:text-xl tracking-tight text-text-main dark:text-text-main-dark leading-none">Lumina</span>
               <span className="hidden sm:block text-[10px] font-bold text-primary uppercase tracking-widest mt-1 opacity-80">
@@ -1831,7 +1827,7 @@ function App() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className="w-24 h-24 bg-surface-muted dark:bg-surface-muted-dark rounded-[2.5rem] flex items-center justify-center mb-6 shadow-inner">
-                <GraduationCap className="w-12 h-12 text-text-main/20 dark:text-text-main-dark/20" />
+                <Logo showBackground={false} className="w-12 h-12 text-text-main/20 dark:text-text-main-dark/20" />
               </div>
               <h2 className="text-2xl font-extrabold text-text-main dark:text-text-main-dark tracking-tight">Select a task to begin</h2>
               <p className="text-text-main/50 dark:text-text-main-dark/50 mt-2 max-w-xs leading-relaxed">Choose an assignment or exam from the sidebar to view details and manage your progress.</p>
@@ -2093,7 +2089,7 @@ function App() {
             "p-2 rounded-xl transition-all",
             mobileActiveView === 'dashboard' ? "bg-primary/10" : "bg-transparent"
           )}>
-            <GraduationCap className="w-6 h-6" />
+            <Logo showBackground={false} className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wider">Dashboard</span>
         </button>
