@@ -48,7 +48,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay, accent }: any) => 
       <Icon className="w-6 h-6" />
     </div>
     <h3 className="text-xl font-bold text-text-main dark:text-text-main-dark mb-3 tracking-tight">{title}</h3>
-    <p className="text-text-muted dark:text-text-muted-dark leading-relaxed text-sm">{description}</p>
+    <p className="text-text-main/70 dark:text-text-main-dark/70 leading-relaxed text-sm">{description}</p>
   </motion.div>
 );
 
@@ -64,7 +64,7 @@ export const LandingPage = ({
   setDarkMode
 }: LandingPageProps) => {
   return (
-    <div className="min-h-screen bg-[#FDFDFB] dark:bg-[#070707] text-text-main dark:text-text-main-dark font-sans selection:bg-primary/20 selection:text-primary overflow-x-hidden">
+    <div className="min-h-screen bg-[#FDFDFB] dark:bg-[#070707] text-text-main dark:text-text-main-dark font-sans selection:bg-primary selection:text-white overflow-x-hidden">
       
       {/* Dynamic Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -88,7 +88,7 @@ export const LandingPage = ({
               <a 
                 key={item} 
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="text-sm font-semibold text-text-muted hover:text-primary transition-colors tracking-tight"
+                className="text-sm font-bold text-text-main/70 hover:text-primary dark:text-text-main-dark/70 dark:hover:text-primary transition-all tracking-tight"
               >
                 {item}
               </a>
@@ -107,7 +107,7 @@ export const LandingPage = ({
           <div className="hidden sm:flex items-center gap-4">
             <button 
               onClick={() => { onLogin(); setIsAuthModalOpen(true); }}
-              className="text-sm font-bold text-text-muted hover:text-text-main transition-colors px-4 py-2"
+              className="text-sm font-bold text-text-main/60 hover:text-text-main dark:text-text-main-dark/70 dark:hover:text-text-main-dark transition-all px-4 py-2"
             >
               Sign In
             </button>
@@ -141,14 +141,14 @@ export const LandingPage = ({
               className="text-6xl sm:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.9] text-text-main dark:text-text-main-dark"
             >
               Study <span className="text-primary italic">Smarter,</span> <br />
-              Not Harder.
+              and Faster.
             </motion.h1>
 
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.8 }}
-              className="text-lg sm:text-xl text-text-muted dark:text-text-muted-dark max-w-xl leading-relaxed font-medium"
+              className="text-lg sm:text-xl text-text-main/70 dark:text-text-main-dark/70 max-w-xl leading-relaxed font-medium"
             >
               The unified workspace for students. Organize your academic life with AI-powered conceptual tools, real-time calendar syncing, and a focus-first interface.
             </motion.p>

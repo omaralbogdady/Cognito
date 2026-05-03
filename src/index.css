@@ -23,7 +23,7 @@
   
   --color-text-main: #121212;
   --color-text-main-dark: #F5F7FA;
-  --color-text-muted: #64748B;
+  --color-text-muted: #475569;
   --color-text-muted-dark: #94A3B8;
 
   /* Custom Easing */
@@ -41,11 +41,11 @@
   }
 
   body {
-    @apply h-full bg-surface text-text-main font-sans selection:bg-primary/20 selection:text-primary;
+    @apply h-full bg-surface text-text-main font-sans selection:bg-primary selection:text-white;
   }
 
   .dark body {
-    @apply bg-surface-dark text-text-main-dark;
+    @apply bg-surface-dark text-text-main-dark selection:bg-primary selection:text-white;
   }
 
   /* Custom Scrollbar */
@@ -109,4 +109,15 @@
   .rotate-y-180 {
     transform: rotateY(180deg);
   }
+
+  /* Custom Markdown Styling */
+  .markdown-body h1 { @apply text-2xl font-black mb-4 mt-6; }
+  .markdown-body h2 { @apply text-xl font-bold mb-3 mt-5; }
+  .markdown-body h3 { @apply text-lg font-bold mb-2 mt-4; }
+  .markdown-body p { @apply mb-4 leading-relaxed; }
+  .markdown-body ul { @apply list-disc list-inside mb-4 space-y-2; }
+  .markdown-body ol { @apply list-decimal list-inside mb-4 space-y-2; }
+  .markdown-body strong { @apply font-black text-primary; }
+  .markdown-body blockquote { @apply border-l-4 border-primary/30 pl-4 italic my-4; }
+  .markdown-body code { @apply bg-primary/10 px-1.5 py-0.5 rounded font-mono text-[0.9em]; }
 }

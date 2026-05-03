@@ -194,7 +194,7 @@ export const Onboarding = ({ onComplete, onStepChange }: OnboardingProps) => {
                 <h3 className="font-extrabold text-xl text-text-main dark:text-text-main-dark tracking-tight mb-2">
                   {step.title}
                 </h3>
-                <p className="text-sm font-medium text-text-muted dark:text-text-muted-dark leading-relaxed">
+                <p className="text-sm font-medium text-text-main/70 dark:text-text-main-dark/80 leading-relaxed">
                   {step.description}
                 </p>
               </motion.div>

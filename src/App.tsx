@@ -72,7 +72,7 @@ import { Task, SubTask, Note, TaskType, UserProfile, RecurrenceType } from './ty
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
 import { LandingPage } from './components/LandingPage';
 import { Onboarding } from './components/Onboarding';
-import { explainTopic, generateConcepts, generateFlashcards } from './services/geminiService';
+import { explainTopic, generateConcepts, generateFlashcards, GeminiError, AIErrorType } from './services/geminiService';
 import { Type } from "@google/genai";
 import Markdown from 'react-markdown';
 
@@ -200,9 +200,9 @@ const Button = ({
 }: any) => {
   const variants: any = {
     primary: 'bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 hover:shadow-primary/30',
-    secondary: 'bg-surface text-text-muted border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-muted-dark dark:border-border-dark dark:hover:bg-border-dark shadow-sm hover:shadow-md',
-    ghost: 'bg-transparent text-text-muted hover:bg-surface-muted dark:text-text-muted-dark dark:hover:bg-surface-muted-dark/80',
-    danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-100 dark:border-red-900/30',
+    secondary: 'bg-surface text-text-main border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-main-dark dark:border-border-dark dark:hover:bg-border-dark shadow-sm hover:shadow-md',
+    ghost: 'bg-transparent text-text-muted hover:text-text-main hover:bg-surface-muted dark:text-text-muted-dark dark:hover:text-text-main-dark dark:hover:bg-surface-muted-dark/80',
+    danger: 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40 border border-red-100 dark:border-red-900/30',
     glass: 'glass hover:bg-white/90 dark:hover:bg-surface-muted-dark/90 text-text-main dark:text-text-main-dark'
   };
   const sizes: any = {
@@ -270,7 +270,7 @@ const Flashcard = ({ card }: { card: Note }) => {
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           
-          <div className="flex items-center gap-2 text-white/60 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
+          <div className="flex items-center gap-2 text-white/80 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
             <Layers className="w-4 h-4" />
             <span>Question</span>
           </div>
@@ -287,9 +287,9 @@ const Flashcard = ({ card }: { card: Note }) => {
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="px-5 py-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg"
+                    className="px-5 py-4 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/20 shadow-lg"
                   >
-                    <p className="text-[11px] text-white/90 italic text-center font-bold">
+                    <p className="text-[11px] text-white italic text-center font-bold">
                       {card.hint}
                     </p>
                   </motion.div>
@@ -299,7 +299,7 @@ const Flashcard = ({ card }: { card: Note }) => {
                       e.stopPropagation();
                       setShowHint(true);
                     }}
-                    className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/10 active:scale-95"
+                    className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/20 active:scale-95"
                   >
                     <HelpCircle className="w-4 h-4" />
                     Show Hint
@@ -307,7 +307,7 @@ const Flashcard = ({ card }: { card: Note }) => {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2 text-[9px] text-white/50 font-extrabold uppercase tracking-[0.3em]">
+            <div className="flex items-center gap-2 text-[9px] text-white/70 font-extrabold uppercase tracking-[0.3em]">
               <RotateCw className="w-3.5 h-3.5" />
               Flip for answer
             </div>
@@ -336,7 +336,7 @@ const Flashcard = ({ card }: { card: Note }) => {
 
 const Input = ({ label, icon: Icon, ...props }: any) => (
   <div className="space-y-2">
-    {label && <label className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-widest ml-1">{label}</label>}
+    {label && <label className="text-[10px] font-black text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-[0.2em] ml-1">{label}</label>}
     <div className="relative group">
       {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-all duration-300" />}
       <input 
@@ -715,7 +715,15 @@ function App() {
       setExplainmentContent(explanation || "No explanation generated.");
     } catch (error: any) {
       console.error("AI Error:", error);
-      setExplainmentContent(`Sorry, I couldn't generate an explanation right now. ${error.message || ""}`);
+      if (error instanceof GeminiError) {
+        if (error.type === AIErrorType.RATE_LIMIT) {
+          setExplainmentContent(`### ⏳ Slow Down a Bit!\n\nYou've reached the AI request limit. Let's take a short break—Gemini will be ready to help you again in about a minute.\n\n*Study tip: While waiting, try reviewing your current tasks or organizing your notes!*`);
+        } else {
+          setExplainmentContent(`**AI Service Error (${error.type})**\n\n${error.message}`);
+        }
+      } else {
+        setExplainmentContent(`Sorry, I couldn't generate an explanation right now. ${error.message || ""}`);
+      }
     } finally {
       setIsExplaining(false);
     }
@@ -726,16 +734,21 @@ function App() {
     setIsGeneratingConcepts(true);
     try {
       const generated = await generateConcepts(selectedTask.title, selectedTask.description);
-      for (const concept of generated) {
-        await addDoc(collection(db, 'tasks', selectedTask.id, 'notes'), {
+      const addPromises = generated.map(concept => 
+        addDoc(collection(db, 'tasks', selectedTask.id, 'notes'), {
           taskId: selectedTask.id,
           content: `${concept.title}: ${concept.content}`,
           type: 'concept'
-        });
-      }
+        })
+      );
+      await Promise.all(addPromises);
     } catch (error: any) {
       console.error("AI Error:", error);
-      alert(`AI Error: ${error.message || "Failed to generate concepts"}`);
+      let errorMessage = error instanceof GeminiError ? error.message : (error.message || "Failed to generate concepts");
+      if (error instanceof GeminiError && error.type === AIErrorType.RATE_LIMIT) {
+        errorMessage = "You've hit the speed limit! Please wait about a minute before generating more concepts so Gemini can catch up.";
+      }
+      alert(errorMessage);
     } finally {
       setIsGeneratingConcepts(false);
     }
@@ -746,18 +759,23 @@ function App() {
     setIsGeneratingFlashcards(true);
     try {
       const generated = await generateFlashcards(selectedTask.title, selectedTask.description);
-      for (const card of generated) {
-        await addDoc(collection(db, 'tasks', selectedTask.id, 'notes'), {
+      const addPromises = generated.map(card => 
+        addDoc(collection(db, 'tasks', selectedTask.id, 'notes'), {
           taskId: selectedTask.id,
           question: card.question,
           answer: card.answer,
           hint: card.hint,
           type: 'flashcard'
-        });
-      }
+        })
+      );
+      await Promise.all(addPromises);
     } catch (error: any) {
       console.error("AI Error:", error);
-      alert(`AI Error: ${error.message || "Failed to generate flashcards"}`);
+      let errorMessage = error instanceof GeminiError ? error.message : (error.message || "Failed to generate flashcards");
+      if (error instanceof GeminiError && error.type === AIErrorType.RATE_LIMIT) {
+        errorMessage = "Steady on! You've reached the rate limit. Gemini needs a quick 60-second recharge before creating more flashcards.";
+      }
+      alert(errorMessage);
     } finally {
       setIsGeneratingFlashcards(false);
     }
@@ -962,15 +980,17 @@ function App() {
   const addSubtask = async () => {
     if (!selectedTaskId || !user || !newSubtaskTitle.trim()) return;
 
+    const title = newSubtaskTitle.trim();
+    setNewSubtaskTitle('');
+    setIsAddingSubtask(false);
+
     try {
       await addDoc(collection(db, 'tasks', selectedTaskId, 'subtasks'), {
         taskId: selectedTaskId,
-        title: newSubtaskTitle.trim(),
+        title,
         completed: false,
         order: subtasks.length,
       });
-      setNewSubtaskTitle('');
-      setIsAddingSubtask(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `tasks/${selectedTaskId}/subtasks`);
     }
@@ -978,20 +998,22 @@ function App() {
 
   const toggleSubtask = async (sub: SubTask) => {
     if (!selectedTaskId || !user) return;
+    
     try {
-      await updateDoc(doc(db, 'tasks', selectedTaskId, 'subtasks', sub.id), {
-        completed: !sub.completed,
-      });
-      
-      // Update task progress
+      // Parallelize the subtask update and the parent task progress update
       const updatedSubtasks = subtasks.map(s => s.id === sub.id ? { ...s, completed: !s.completed } : s);
       const completedCount = updatedSubtasks.filter(s => s.completed).length;
       const progress = Math.round((completedCount / updatedSubtasks.length) * 100);
       
-      await updateDoc(doc(db, 'tasks', selectedTaskId), {
-        progress,
-        status: progress === 100 ? 'completed' : 'pending'
-      });
+      await Promise.all([
+        updateDoc(doc(db, 'tasks', selectedTaskId, 'subtasks', sub.id), {
+          completed: !sub.completed,
+        }),
+        updateDoc(doc(db, 'tasks', selectedTaskId), {
+          progress,
+          status: progress === 100 ? 'completed' : 'pending'
+        })
+      ]);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `tasks/${selectedTaskId}/subtasks/${sub.id}`);
     }
@@ -1023,26 +1045,33 @@ function App() {
     try {
       if (type === 'concept') {
         if (!newConceptContent.trim()) return;
-        await addDoc(collection(db, 'tasks', selectedTaskId, 'notes'), {
-          taskId: selectedTaskId,
-          content: newConceptContent.trim(),
-          type,
-        });
+        const content = newConceptContent.trim();
         setNewConceptContent('');
         setIsAddingConcept(false);
-      } else {
-        if (!newFlashcardQuestion.trim() || !newFlashcardAnswer.trim()) return;
+        
         await addDoc(collection(db, 'tasks', selectedTaskId, 'notes'), {
           taskId: selectedTaskId,
-          question: newFlashcardQuestion.trim(),
-          answer: newFlashcardAnswer.trim(),
-          hint: newFlashcardHint.trim(),
+          content,
           type,
         });
+      } else {
+        if (!newFlashcardQuestion.trim() || !newFlashcardAnswer.trim()) return;
+        const question = newFlashcardQuestion.trim();
+        const answer = newFlashcardAnswer.trim();
+        const hint = newFlashcardHint.trim();
+        
         setNewFlashcardQuestion('');
         setNewFlashcardAnswer('');
         setNewFlashcardHint('');
         setIsAddingFlashcard(false);
+
+        await addDoc(collection(db, 'tasks', selectedTaskId, 'notes'), {
+          taskId: selectedTaskId,
+          question,
+          answer,
+          hint,
+          type,
+        });
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `tasks/${selectedTaskId}/notes`);
@@ -1117,7 +1146,7 @@ function App() {
 
         <div className="relative py-2">
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border dark:border-border-dark"></div></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface dark:bg-surface-muted-dark px-2 text-text-muted dark:text-text-muted-dark">Or continue with</span></div>
+          <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface dark:bg-surface-muted-dark px-2 text-text-main/40 dark:text-text-main-dark/40 font-bold tracking-widest">Or continue with</span></div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -1202,7 +1231,7 @@ function App() {
                   >
                     <div className="p-5 space-y-5">
                       <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-[0.2em]">
                           <Settings className="w-3 h-3" />
                           Settings
                         </div>
@@ -1217,7 +1246,7 @@ function App() {
                       </div>
 
                       <div className="space-y-3 px-1">
-                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-[0.2em]">
                           <Palette className="w-3 h-3" />
                           Theme Color
                         </div>
@@ -1246,14 +1275,14 @@ function App() {
                       </div>
 
                       <div className="space-y-3 px-1">
-                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">
+                        <div className="flex items-center gap-2 text-[10px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-[0.2em]">
                           <Calendar className="w-3 h-3" />
                           Integrations
                         </div>
                          <div className="flex items-center justify-between p-3 bg-surface-muted dark:bg-surface-muted-dark/50 rounded-2xl border border-border dark:border-border-dark">
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-text-main dark:text-text-main-dark">Google Calendar</span>
-                            <span className="text-[10px] text-text-muted">Sync your tasks</span>
+                            <span className="text-[10px] text-text-main/60 dark:text-text-main-dark/60 font-medium">Sync your tasks</span>
                           </div>
                           <button 
                             onClick={toggleCalendarSync}
@@ -1275,7 +1304,7 @@ function App() {
                               <span className="text-xs font-bold text-text-main dark:text-text-main-dark">Gemini AI</span>
                               <span className="text-[8px] bg-primary/10 text-primary px-1 rounded-sm uppercase font-black">Free</span>
                             </div>
-                            <span className="text-[10px] text-text-muted">Study help & flashcards</span>
+                            <span className="text-[10px] text-text-main/60 dark:text-text-main-dark/60 font-medium">Study help & flashcards</span>
                           </div>
                           <button 
                             onClick={toggleAI}
@@ -1322,7 +1351,7 @@ function App() {
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden border-2 border-surface dark:border-border-dark shadow-md">
               {user.photoURL ? <img src={user.photoURL} alt="profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : (user.displayName?.[0] || user.email?.[0]?.toUpperCase() || 'G')}
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-text-muted hover:text-red-500 rounded-full w-9 h-9 sm:w-10 sm:h-10">
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-text-main/60 hover:text-red-500 dark:text-text-main-dark/60 dark:hover:text-red-400 rounded-full w-9 h-9 sm:w-10 sm:h-10">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -1366,7 +1395,7 @@ function App() {
                 onClick={() => setActiveTab('assignment')}
                 className={cn(
                   "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all relative z-10", 
-                  activeTab === 'assignment' ? "text-primary dark:text-text-main-dark" : "text-text-muted hover:text-text-main dark:hover:text-text-main-dark"
+                  activeTab === 'assignment' ? "text-primary dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
                 )}
               >
                 Assignments
@@ -1375,7 +1404,7 @@ function App() {
                 onClick={() => setActiveTab('exam')}
                 className={cn(
                   "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all relative z-10", 
-                  activeTab === 'exam' ? "text-primary dark:text-text-main-dark" : "text-text-muted hover:text-text-main dark:hover:text-text-main-dark"
+                  activeTab === 'exam' ? "text-primary dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
                 )}
               >
                 Exams
@@ -1426,7 +1455,7 @@ function App() {
                     <p className="text-base font-extrabold text-text-main dark:text-text-main-dark tracking-tight">
                       {searchQuery ? "No matching tasks" : `No ${activeTab}s yet`}
                     </p>
-                    <p className="text-xs text-text-muted mt-2 leading-relaxed max-w-[200px] mx-auto">
+                    <p className="text-xs font-medium text-text-main/60 dark:text-text-main-dark/60 mt-2 leading-relaxed max-w-[200px] mx-auto">
                       {searchQuery ? "Try a different search term or clear the filter." : "Get started by adding your first academic challenge."}
                     </p>
                   </motion.div>
@@ -1457,7 +1486,7 @@ function App() {
                         "w-full text-left p-5 rounded-[1.5rem] transition-all relative pr-24 border-2",
                         selectedTaskId === task.id 
                           ? "bg-surface dark:bg-surface-muted-dark border-primary/20 shadow-xl shadow-primary/10 text-primary dark:text-text-main-dark scale-[1.02]" 
-                          : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-muted dark:text-text-muted-dark hover:scale-[1.01]"
+                          : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark hover:scale-[1.01]"
                       )}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -1468,7 +1497,7 @@ function App() {
                           )} />
                           <span className={cn(
                             "text-[10px] font-extrabold uppercase tracking-[0.2em]",
-                            selectedTaskId === task.id ? "text-primary/70" : "text-text-muted"
+                            selectedTaskId === task.id ? "text-primary/90" : "text-text-main/40 dark:text-text-main-dark/40"
                           )}>
                             {task.type}
                           </span>
@@ -1548,7 +1577,7 @@ function App() {
                       onClick={() => setIsTaskMenuOpen(!isTaskMenuOpen)}
                       className="rounded-full hover:bg-surface-muted dark:hover:bg-border-dark"
                     >
-                      <MoreVertical className="w-5 h-5 text-text-muted" />
+                      <MoreVertical className="w-5 h-5 text-text-main/40 dark:text-text-main-dark/40" />
                     </Button>
                     <AnimatePresence>
                       {isTaskMenuOpen && (
@@ -1617,7 +1646,7 @@ function App() {
                         <Clock className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-extrabold text-text-muted uppercase tracking-widest">Deadline</span>
+                        <span className="text-[9px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-widest">Deadline</span>
                         <span className="text-sm font-bold text-text-main dark:text-text-main-dark">
                           {selectedTask.dueDate ? format(selectedTask.dueDate, 'MMMM d, yyyy') : 'No due date'}
                         </span>
@@ -1628,7 +1657,7 @@ function App() {
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-extrabold text-text-muted uppercase tracking-widest">Progress</span>
+                        <span className="text-[9px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-widest">Progress</span>
                         <span className="text-sm font-bold text-text-main dark:text-text-main-dark">{selectedTask.progress}% Complete</span>
                       </div>
                     </div>
@@ -1696,7 +1725,7 @@ function App() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-center text-text-muted font-bold uppercase tracking-widest mt-4">Task Mastery</p>
+                  <p className="text-[10px] text-center text-text-main/40 dark:text-text-main-dark/40 font-bold uppercase tracking-widest mt-4">Task Mastery</p>
                 </div>
               </div>
 
@@ -1756,7 +1785,7 @@ function App() {
                         <div className="w-12 h-12 bg-surface-muted dark:bg-surface-muted-dark rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-40 group-hover:opacity-100 transition-opacity">
                           <Plus className="w-6 h-6" />
                         </div>
-                        <p className="text-sm font-bold text-text-muted">Break this task into smaller, manageable steps.</p>
+                        <p className="text-sm font-bold text-text-main/60 dark:text-text-main-dark/60">Break this task into smaller, manageable steps.</p>
                       </motion.div>
                     ) : (
                       subtasks.map(sub => (
@@ -1788,7 +1817,7 @@ function App() {
                             variant="ghost" 
                             size="icon" 
                             onClick={(e: any) => { e.stopPropagation(); deleteSubtask(sub.id); }}
-                            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 rounded-full w-8 h-8"
+                            className="opacity-0 group-hover:opacity-100 text-text-main/40 hover:text-red-500 dark:text-text-main-dark/40 dark:hover:text-red-400 rounded-full w-8 h-8"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1802,10 +1831,10 @@ function App() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className="w-24 h-24 bg-surface-muted dark:bg-surface-muted-dark rounded-[2.5rem] flex items-center justify-center mb-6 shadow-inner">
-                <GraduationCap className="w-12 h-12 text-text-muted/30" />
+                <GraduationCap className="w-12 h-12 text-text-main/20 dark:text-text-main-dark/20" />
               </div>
               <h2 className="text-2xl font-extrabold text-text-main dark:text-text-main-dark tracking-tight">Select a task to begin</h2>
-              <p className="text-text-muted dark:text-text-muted-dark mt-2 max-w-xs leading-relaxed">Choose an assignment or exam from the sidebar to view details and manage your progress.</p>
+              <p className="text-text-main/50 dark:text-text-main-dark/50 mt-2 max-w-xs leading-relaxed">Choose an assignment or exam from the sidebar to view details and manage your progress.</p>
             </div>
           )}
         </section>
@@ -2025,8 +2054,8 @@ function App() {
                    {notes.filter(n => n.type === 'flashcard').length === 0 && !isAddingFlashcard && (
                     <div className="py-12 text-center border-2 border-dashed border-border dark:border-border-dark rounded-3xl">
                       <Layers className="w-10 h-10 text-text-muted/30 mx-auto mb-3" />
-                      <p className="text-sm font-bold text-text-muted">No flashcards yet</p>
-                      <p className="text-xs text-text-muted/70 mt-1">Create cards to test your knowledge.</p>
+                      <p className="text-sm font-bold text-text-main/80 dark:text-text-main-dark/80">No flashcards yet</p>
+                      <p className="text-xs text-text-main/50 dark:text-text-main-dark/50 mt-1">Create cards to test your knowledge.</p>
                     </div>
                   )}
                 </div>
@@ -2250,10 +2279,10 @@ function App() {
             {isExplaining ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p className="text-sm font-bold text-text-muted">Gemini is thinking...</p>
+                <p className="text-sm font-bold text-text-main/60 dark:text-text-main-dark/60">Gemini is thinking...</p>
               </div>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-text-main dark:text-text-main-dark leading-relaxed font-medium">
+              <div className="markdown-body text-sm max-w-none text-text-main dark:text-text-main-dark leading-relaxed font-medium">
                 <Markdown>{explainmentContent}</Markdown>
               </div>
             )}
