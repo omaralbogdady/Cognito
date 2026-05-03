@@ -17,7 +17,7 @@ export const explainTopic = async (topic: string, context: string = "") => {
   const prompt = `You are an expert tutor. Explain the following topic in a clear, concise, and engaging way for a student: "${topic}". ${context ? `Context: ${context}` : ""} Use Markdown for formatting (bolding, lists, headers) to make it information-rich and easy to scan.`;
   
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
   });
   
@@ -26,7 +26,7 @@ export const explainTopic = async (topic: string, context: string = "") => {
 
 export const generateConcepts = async (topic: string, context: string = "") => {
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: `Based on the following topic and description, generate 3-5 key concepts that a student should understand. Topic: "${topic}". Description: "${context}".`,
     config: {
       responseMimeType: "application/json",
@@ -49,7 +49,7 @@ export const generateConcepts = async (topic: string, context: string = "") => {
 
 export const generateFlashcards = async (topic: string, context: string = "") => {
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: `Based on the following topic and description, generate 5 study flashcards (question, answer, and a short hint). Topic: "${topic}". Description: "${context}".`,
     config: {
       responseMimeType: "application/json",

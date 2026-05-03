@@ -20,7 +20,7 @@ interface OnboardingProps {
 
 const steps = [
   {
-    title: "Welcome to Cognito",
+    title: "Welcome to Lumina",
     description: "Your new minimalist command center for academic mastery. Let's show you how to get the most out of it.",
     target: "body",
     icon: GraduationCap,

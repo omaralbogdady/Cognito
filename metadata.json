@@ -1,5 +1,5 @@
 {
-  "name": "Cognito",
-  "description": "A minimalist, full-stack cognitive dashboard for managing assignments, exams, and study notes with real-time sync.",
+  "name": "Lumina",
+  "description": "A minimalist, full-stack cognitive dashboard for managing assignments, exams, and study notes with real-time sync and AI assistance.",
   "requestFramePermissions": []
 }
