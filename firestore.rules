@@ -34,7 +34,7 @@ service cloud.firestore {
     }
 
     function isValidTask(data) {
-      let allowedFields = ['userId', 'title', 'type', 'status', 'progress', 'createdAt', 'description', 'dueDate', 'calendarEventId'];
+      let allowedFields = ['userId', 'title', 'type', 'status', 'progress', 'createdAt', 'description', 'dueDate', 'calendarEventId', 'recurrence', 'parentId'];
       return data.keys().hasOnly(allowedFields) &&
              data.userId == request.auth.uid &&
              isValidString(data.title, 100) &&
@@ -44,7 +44,9 @@ service cloud.firestore {
              data.createdAt is timestamp &&
              (!('dueDate' in data) || data.dueDate is timestamp) &&
              (!('description' in data) || data.description is string && data.description.size() <= 1000) &&
-             (!('calendarEventId' in data) || data.calendarEventId is string);
+             (!('calendarEventId' in data) || data.calendarEventId is string) &&
+             (!('recurrence' in data) || data.recurrence in ['daily', 'weekly', 'monthly', 'none']) &&
+             (!('parentId' in data) || data.parentId is string);
     }
 
     function isValidSubTask(data) {

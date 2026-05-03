@@ -30,7 +30,9 @@
         "progress": { "type": "number" },
         "description": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "calendarEventId": { "type": "string" }
+        "calendarEventId": { "type": "string" },
+        "recurrence": { "type": "string", "enum": ["daily", "weekly", "monthly", "none"] },
+        "parentId": { "type": "string" }
       },
       "required": ["userId", "title", "type", "status"]
     },
