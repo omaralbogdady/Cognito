@@ -80,13 +80,14 @@ import { Type } from "@google/genai";
 import Markdown from 'react-markdown';
 
 const THEME_COLORS = [
-  { name: 'Blue', primary: '#3B82F6', hover: '#2563EB', light: '#EFF6FF', dark: '#1D4ED8' },
-  { name: 'Red', primary: '#EF4444', hover: '#DC2626', light: '#FEF2F2', dark: '#B91C1C' },
-  { name: 'Pink', primary: '#EC4899', hover: '#DB2777', light: '#FDF2F8', dark: '#BE185D' },
-  { name: 'Green', primary: '#10B981', hover: '#059669', light: '#ECFDF5', dark: '#047857' },
-  { name: 'Yellow', primary: '#F59E0B', hover: '#D97706', light: '#FFFBEB', dark: '#B45309' },
-  { name: 'Orange', primary: '#F97316', hover: '#EA580C', light: '#FFF7ED', dark: '#C2410C' },
-  { name: 'Purple', primary: '#8B5CF6', hover: '#7C3AED', light: '#F5F3FF', dark: '#6D28D9' },
+  { name: 'Blue', primary: '#3B82F6', hover: '#2563EB', light: '#EFF6FF', dark: '#1D4ED8', foreground: '#FFFFFF' },
+  { name: 'Red', primary: '#EF4444', hover: '#DC2626', light: '#FEF2F2', dark: '#B91C1C', foreground: '#FFFFFF' },
+  { name: 'Pink', primary: '#EC4899', hover: '#DB2777', light: '#FDF2F8', dark: '#BE185D', foreground: '#FFFFFF' },
+  { name: 'Green', primary: '#10B981', hover: '#059669', light: '#ECFDF5', dark: '#047857', foreground: '#FFFFFF' },
+  { name: 'Yellow', primary: '#F59E0B', hover: '#D97706', light: '#FFFBEB', dark: '#B45309', foreground: '#FFFFFF' },
+  { name: 'Orange', primary: '#F97316', hover: '#EA580C', light: '#FFF7ED', dark: '#C2410C', foreground: '#FFFFFF' },
+  { name: 'Purple', primary: '#8B5CF6', hover: '#7C3AED', light: '#F5F3FF', dark: '#6D28D9', foreground: '#FFFFFF' },
+  { name: 'White', primary: '#FFFFFF', hover: '#F3F4F6', light: '#F9FAFB', dark: '#E5E7EB', foreground: '#121212' },
 ];
 
 const staggerContainer: Variants = {
@@ -202,7 +203,7 @@ const Button = ({
   ...props 
 }: any) => {
   const variants: any = {
-    primary: 'bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 hover:shadow-primary/30',
+    primary: 'bg-primary text-primary-foreground hover:bg-primary-hover shadow-lg shadow-primary/20 hover:shadow-primary/30',
     secondary: 'bg-surface text-text-main border border-border hover:bg-surface-muted dark:bg-surface-muted-dark dark:text-text-main-dark dark:border-border-dark dark:hover:bg-border-dark shadow-sm hover:shadow-md',
     ghost: 'bg-transparent text-text-muted hover:text-text-main hover:bg-surface-muted dark:text-text-muted-dark dark:hover:text-text-main-dark dark:hover:bg-surface-muted-dark/80',
     danger: 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40 border border-red-100 dark:border-red-900/30',
@@ -269,16 +270,16 @@ const Flashcard = ({ card }: { card: Note }) => {
         onClick={() => setIsFlipped(!isFlipped)}
       >
         {/* Front */}
-        <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-[2rem] p-8 flex flex-col shadow-2xl shadow-primary/20 border border-white/10 overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-primary to-primary-hover rounded-[2rem] p-8 flex flex-col shadow-2xl shadow-primary/20 border border-primary-foreground/10 overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary-foreground/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary-foreground/10 rounded-full blur-3xl" />
           
-          <div className="flex items-center gap-2 text-white/80 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
+          <div className="flex items-center gap-2 text-primary-foreground/80 text-[10px] font-extrabold uppercase tracking-[0.25em] mb-4 relative z-10">
             <Layers className="w-4 h-4" />
             <span>Question</span>
           </div>
           <div className="flex-1 flex items-center justify-center text-center relative z-10">
-            <p className="text-white font-extrabold text-xl leading-tight tracking-tight">
+            <p className="text-primary-foreground font-extrabold text-xl leading-tight tracking-tight">
               {card.question}
             </p>
           </div>
@@ -290,9 +291,9 @@ const Flashcard = ({ card }: { card: Note }) => {
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="px-5 py-4 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/20 shadow-lg"
+                    className="px-5 py-4 bg-primary-foreground/20 backdrop-blur-xl rounded-2xl border border-primary-foreground/20 shadow-lg"
                   >
-                    <p className="text-[11px] text-white italic text-center font-bold">
+                    <p className="text-[11px] text-primary-foreground italic text-center font-bold">
                       {card.hint}
                     </p>
                   </motion.div>
@@ -302,7 +303,7 @@ const Flashcard = ({ card }: { card: Note }) => {
                       e.stopPropagation();
                       setShowHint(true);
                     }}
-                    className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] text-white font-extrabold uppercase tracking-widest transition-all border border-white/20 active:scale-95"
+                    className="mx-auto flex items-center gap-2 px-5 py-2.5 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full text-[10px] text-primary-foreground font-extrabold uppercase tracking-widest transition-all border border-primary-foreground/20 active:scale-95"
                   >
                     <HelpCircle className="w-4 h-4" />
                     Show Hint
@@ -310,7 +311,7 @@ const Flashcard = ({ card }: { card: Note }) => {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2 text-[9px] text-white/70 font-extrabold uppercase tracking-[0.3em]">
+            <div className="flex items-center gap-2 text-[9px] text-primary-foreground/70 font-extrabold uppercase tracking-[0.3em]">
               <RotateCw className="w-3.5 h-3.5" />
               Flip for answer
             </div>
@@ -341,10 +342,10 @@ const Input = ({ label, icon: Icon, ...props }: any) => (
   <div className="space-y-2">
     {label && <label className="text-[10px] font-black text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-[0.2em] ml-1">{label}</label>}
     <div className="relative group">
-      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-all duration-300" />}
+      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-brand transition-all duration-300" />}
       <input 
         className={cn(
-          "w-full bg-surface-muted border border-border rounded-2xl py-3.5 text-sm focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all dark:bg-surface-muted-dark dark:border-border-dark dark:text-text-main-dark",
+          "w-full bg-surface-muted border border-border rounded-2xl py-3.5 text-sm focus:outline-none focus:ring-4 focus:ring-primary-brand/10 focus:border-primary-brand transition-all dark:bg-surface-muted-dark dark:border-border-dark dark:text-text-main-dark",
           Icon ? "pl-11 pr-4" : "px-4"
         )}
         {...props}
@@ -403,7 +404,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
               </div>
             )}
             <button 
-              className="w-full bg-primary text-white rounded-2xl py-3 font-semibold hover:bg-primary-hover transition-colors"
+              className="w-full bg-primary text-primary-foreground rounded-2xl py-3 font-semibold hover:bg-primary-hover transition-colors"
               onClick={() => window.location.reload()}
             >
               Refresh Page
@@ -580,7 +581,14 @@ function App() {
     root.style.setProperty('--primary-hover-color', color.hover);
     root.style.setProperty('--primary-light-color', color.light);
     root.style.setProperty('--primary-dark-color', color.dark);
-  }, [userProfile?.themeColor]);
+    root.style.setProperty('--primary-foreground', color.foreground);
+    
+    if (color.name === 'White') {
+      root.style.setProperty('--primary-brand-color', darkMode ? '#FFFFFF' : '#121212');
+    } else {
+      root.style.setProperty('--primary-brand-color', color.primary);
+    }
+  }, [userProfile?.themeColor, darkMode]);
 
   // Auth Listener
   useEffect(() => {
@@ -1203,7 +1211,7 @@ function App() {
       <Card className="max-w-md w-full p-8 space-y-6 border-none shadow-2xl dark:bg-surface-muted-dark">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-primary/20 mb-4">
-            <GraduationCap className="text-white w-10 h-10" />
+            <GraduationCap className="text-primary-foreground w-10 h-10" />
           </div>
           <h1 className="text-3xl font-bold text-text-main dark:text-text-main-dark">Lumina</h1>
           <p className="text-text-muted dark:text-text-muted-dark text-sm">Your minimalist cognitive command center.</p>
@@ -1268,7 +1276,7 @@ function App() {
           {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
           <button 
             onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-            className="text-primary font-bold hover:underline"
+            className="text-primary-brand font-bold hover:underline"
           >
             {authMode === 'login' ? 'Sign Up' : 'Log In'}
           </button>
@@ -1302,11 +1310,11 @@ function App() {
             className="flex items-center gap-2 sm:gap-3 cursor-default"
           >
             <div className="w-9 h-9 sm:w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <GraduationCap className="text-white w-5 h-5 sm:w-6 h-6" />
+              <GraduationCap className="text-primary-foreground w-5 h-5 sm:w-6 h-6" />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-lg sm:text-xl tracking-tight text-text-main dark:text-text-main-dark leading-none">Lumina</span>
-              <span className="hidden sm:block text-[10px] font-bold text-primary uppercase tracking-widest mt-1 opacity-80">
+              <span className="hidden sm:block text-[10px] font-bold text-primary-brand uppercase tracking-widest mt-1 opacity-80">
                 {user ? tagline : "Cognitive Command"}
               </span>
             </div>
@@ -1365,14 +1373,17 @@ function App() {
                                 "w-full aspect-square rounded-xl transition-all border-2 relative group",
                                 (userProfile?.themeColor === c.name || (!userProfile?.themeColor && c.name === 'Blue'))
                                   ? "border-primary scale-110 shadow-lg shadow-primary/20" 
-                                  : "border-transparent hover:scale-105"
+                                  : "border-transparent hover:scale-105 border-border/50 dark:border-border-dark/50"
                               )}
                               style={{ backgroundColor: c.primary }}
                               title={c.name}
                             >
                               {(userProfile?.themeColor === c.name || (!userProfile?.themeColor && c.name === 'Blue')) && (
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                                  <div className={cn(
+                                    "w-1.5 h-1.5 rounded-full shadow-sm",
+                                    c.name === 'White' ? "bg-black" : "bg-white"
+                                  )} />
                                 </div>
                               )}
                             </button>
@@ -1408,7 +1419,7 @@ function App() {
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-bold text-text-main dark:text-text-main-dark">Gemini AI</span>
-                              <span className="text-[8px] bg-primary/10 text-primary px-1 rounded-sm uppercase font-black">Free</span>
+                              <span className="text-[8px] bg-primary-brand/10 text-primary-brand px-1 rounded-sm uppercase font-black">Free</span>
                             </div>
                             <span className="text-[10px] text-text-main/60 dark:text-text-main-dark/60 font-medium">Study help & flashcards</span>
                           </div>
@@ -1454,7 +1465,7 @@ function App() {
               <p className="text-sm font-bold text-text-main dark:text-text-main-dark leading-none">{user.isAnonymous ? 'Guest User' : (user.displayName || user.email?.split('@')[0])}</p>
               <p className="text-[10px] text-text-muted dark:text-text-muted-dark mt-1">{user.isAnonymous ? 'Local Session' : user.email}</p>
             </div>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden border-2 border-surface dark:border-border-dark shadow-md">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-primary-brand/10 dark:bg-primary-brand/20 flex items-center justify-center text-primary-brand font-bold overflow-hidden border-2 border-surface dark:border-border-dark shadow-md">
               {user.photoURL ? <img src={user.photoURL} alt="profile" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : (user.displayName?.[0] || user.email?.[0]?.toUpperCase() || 'G')}
             </div>
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-text-main/60 hover:text-red-500 dark:text-text-main-dark/60 dark:hover:text-red-400 rounded-full w-9 h-9 sm:w-10 sm:h-10">
@@ -1481,7 +1492,7 @@ function App() {
           )}
           title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
         >
-          {isSidebarOpen ? <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary" /> : <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary" />}
+          {isSidebarOpen ? <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary-brand" /> : <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary-brand" />}
         </motion.button>
 
         {/* Left Sidebar - Task List */}
@@ -1519,7 +1530,7 @@ function App() {
                 onClick={() => setActiveTab('assignment')}
                 className={cn(
                   "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all relative z-10", 
-                  activeTab === 'assignment' ? "text-primary dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
+                  activeTab === 'assignment' ? "text-primary-brand dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
                 )}
               >
                 Assignments
@@ -1528,7 +1539,7 @@ function App() {
                 onClick={() => setActiveTab('exam')}
                 className={cn(
                   "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all relative z-10", 
-                  activeTab === 'exam' ? "text-primary dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
+                  activeTab === 'exam' ? "text-primary-brand dark:text-primary-light" : "text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark"
                 )}
               >
                 Exams
@@ -1588,48 +1599,48 @@ function App() {
                   New {activeTab === 'assignment' ? 'Assignment' : 'Exam'}
                 </Button>
               )}
-              <button 
-                onClick={() => {
-                  const newMode = !isBulkMode;
-                  setIsBulkMode(newMode);
-                  if (!newMode) setSelectedTaskIds([]);
-                }}
-                className={cn(
-                  "p-4 rounded-2xl border transition-all h-[60px] w-[60px] flex items-center justify-center shrink-0 relative group",
-                  isBulkMode 
-                    ? "bg-primary text-white border-primary shadow-lg ring-4 ring-primary/10" 
-                    : "bg-surface dark:bg-surface-muted-dark border-border dark:border-border-dark text-text-muted hover:text-primary hover:border-primary/50"
-                )}
-                title={isBulkMode ? "Cancel Multi-select" : "Bulk Actions"}
-              >
-                <div className="relative z-10 transition-transform group-active:scale-90">
-                  <CheckSquare className="w-5 h-5" />
-                  <AnimatePresence>
-                    {isBulkMode && selectedTaskIds.length > 0 && (
-                      <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        className="absolute -top-3 -right-3 min-w-[20px] h-5 px-1 bg-white text-primary text-[10px] font-black rounded-full flex items-center justify-center shadow-lg border-2 border-primary z-20"
-                      >
-                        {selectedTaskIds.length}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                {isBulkMode && (
-                  <motion.div 
-                    layoutId="bulk-glow"
-                    className="absolute inset-0 bg-white/10 blur-xl pointer-events-none"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  />
-                )}
-              </button>
+                <button 
+                  onClick={() => {
+                    const newMode = !isBulkMode;
+                    setIsBulkMode(newMode);
+                    if (!newMode) setSelectedTaskIds([]);
+                  }}
+                  className={cn(
+                    "p-4 rounded-2xl border transition-all h-[60px] w-[60px] flex items-center justify-center shrink-0 relative group",
+                    isBulkMode 
+                      ? "bg-primary text-primary-foreground border-primary shadow-lg ring-4 ring-primary/10" 
+                      : "bg-surface dark:bg-surface-muted-dark border-border dark:border-border-dark text-text-muted hover:text-primary-brand hover:border-primary-brand/50"
+                  )}
+                  title={isBulkMode ? "Cancel Multi-select" : "Bulk Actions"}
+                >
+                  <div className="relative z-10 transition-transform group-active:scale-90">
+                    <CheckSquare className="w-5 h-5" />
+                    <AnimatePresence>
+                      {isBulkMode && selectedTaskIds.length > 0 && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          className="absolute -top-3 -right-3 min-w-[20px] h-5 px-1 bg-primary text-primary-foreground text-[10px] font-black rounded-full flex items-center justify-center shadow-lg border-2 border-primary-foreground/20 z-20"
+                        >
+                          {selectedTaskIds.length}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  {isBulkMode && (
+                    <motion.div 
+                      layoutId="bulk-glow"
+                      className="absolute inset-0 bg-primary-foreground/10 blur-xl pointer-events-none"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    />
+                  )}
+                </button>
             </div>
 
             <div className="relative flex items-center bg-surface dark:bg-surface-muted-dark rounded-2xl px-4 py-3.5 border border-border dark:border-border-dark shadow-sm transition-all focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/40 group">
-              <Search className="w-4 h-4 text-text-muted mr-3 group-focus-within:text-primary transition-colors" />
+              <Search className="w-4 h-4 text-text-muted mr-3 group-focus-within:text-primary-brand transition-colors" />
               <input 
                 type="text" 
                 placeholder={`Search ${activeTab}s...`} 
@@ -1662,7 +1673,7 @@ function App() {
                 }).length === 0 ? (
                   <motion.div variants={staggerItem} className="py-16 text-center px-4">
                     <div className="w-20 h-20 bg-primary/5 dark:bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                      <BookOpen className="text-primary/40 w-10 h-10" />
+                      <BookOpen className="text-primary-brand/40 w-10 h-10" />
                     </div>
                     <p className="text-base font-extrabold text-text-main dark:text-text-main-dark tracking-tight">
                       {searchQuery ? "No matching tasks" : `No ${activeTab}s yet`}
@@ -1715,21 +1726,21 @@ function App() {
                       className={cn(
                         "w-full text-left p-5 rounded-[1.5rem] transition-all relative pr-12 border-2 cursor-pointer",
                         selectedTaskId === task.id && !isBulkMode
-                          ? "bg-surface dark:bg-surface-muted-dark border-primary/20 shadow-xl shadow-primary/10 text-primary dark:text-text-main-dark scale-[1.02]" 
+                          ? "bg-surface dark:bg-surface-muted-dark border-primary-brand/20 shadow-xl shadow-primary-brand/10 text-primary-brand dark:text-text-main-dark scale-[1.02]" 
                           : selectedTaskIds.includes(task.id)
-                            ? "bg-primary/5 dark:bg-primary/10 border-primary shadow-md text-primary scale-[1.01]"
+                            ? "bg-primary-brand/5 dark:bg-primary-brand/10 border-primary-brand shadow-md text-primary-brand scale-[1.01]"
                             : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark hover:scale-[1.01]"
                       )}
                     >
                       {isBulkMode && (
-                        <div 
-                          className={cn(
-                            "absolute top-4 right-4 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
-                            selectedTaskIds.includes(task.id)
-                              ? "bg-primary border-primary text-white"
-                              : "border-border dark:border-border-dark bg-white/50 dark:bg-black/20"
-                          )}
-                        >
+                          <div 
+                            className={cn(
+                              "absolute top-4 right-4 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                              selectedTaskIds.includes(task.id)
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-border dark:border-border-dark bg-white/50 dark:bg-black/20"
+                            )}
+                          >
                           {selectedTaskIds.includes(task.id) && <Check className="w-4 h-4" />}
                         </div>
                       )}
@@ -1741,7 +1752,7 @@ function App() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="w-8 h-8 rounded-full text-text-muted hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center bg-surface/80 dark:bg-surface-muted-dark/80 backdrop-blur-sm"
+                              className="w-8 h-8 rounded-full text-text-muted hover:text-primary-brand hover:bg-primary-brand/10 transition-all flex items-center justify-center bg-surface/80 dark:bg-surface-muted-dark/80 backdrop-blur-sm"
                               title="Add to Google Calendar"
                             >
                               <Calendar className="w-3.5 h-3.5" />
@@ -1771,12 +1782,12 @@ function App() {
                           )} />
                           <span className={cn(
                             "text-[10px] font-extrabold uppercase tracking-[0.2em]",
-                            selectedTaskId === task.id ? "text-primary/90" : "text-text-main/40 dark:text-text-main-dark/40"
+                            selectedTaskId === task.id ? "text-primary-brand/90" : "text-text-main/40 dark:text-text-main-dark/40"
                           )}>
                             {task.type}
                           </span>
                           {task.recurrence && task.recurrence !== 'none' && (
-                            <RotateCw className="w-3 h-3 text-primary/60" />
+                            <RotateCw className="w-3 h-3 text-primary-brand/60" />
                           )}
                         </div>
                       </div>
@@ -1801,7 +1812,7 @@ function App() {
                         <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
                           <span className={cn(
                             "opacity-40",
-                            selectedTaskId === task.id ? "text-primary opacity-60" : "text-text-main dark:text-text-main-dark"
+                            selectedTaskId === task.id ? "text-primary-brand opacity-60" : "text-text-main dark:text-text-main-dark"
                           )}>
                             {task.status === 'completed' ? 'Mastered' : 'Progress'}
                           </span>
@@ -1809,7 +1820,7 @@ function App() {
                             "font-black px-1.5 py-0.5 rounded-full",
                             task.status === 'completed' 
                               ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-                              : selectedTaskId === task.id ? "text-primary bg-primary/10" : "text-text-main/60 dark:text-text-main-dark/60 bg-black/5 dark:bg-white/5"
+                              : selectedTaskId === task.id ? "text-primary-brand bg-primary-brand/10" : "text-text-main/60 dark:text-text-main-dark/60 bg-black/5 dark:bg-white/5"
                           )}>
                             {task.status === 'completed' ? '100' : task.progress}%
                           </span>
@@ -1824,17 +1835,17 @@ function App() {
                               task.status === 'completed' 
                                 ? "bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]" 
                                 : task.progress > 75 
-                                  ? "bg-gradient-to-r from-primary to-primary/80" 
+                                  ? "bg-gradient-to-r from-primary-brand to-primary-brand/80" 
                                   : task.progress > 30 
                                     ? "bg-gradient-to-r from-amber-400 to-amber-300" 
-                                    : "bg-gradient-to-r from-primary/60 to-primary/40"
+                                    : "bg-gradient-to-r from-primary-brand/60 to-primary-brand/40"
                             )}
                           />
                         </div>
                       </div>
 
                       {selectedTaskId === task.id && (
-                        <motion.div layoutId="active-indicator" className="absolute left-0 top-4 bottom-4 w-1 bg-primary rounded-full" />
+                        <motion.div layoutId="active-indicator" className="absolute left-0 top-4 bottom-4 w-1 bg-primary-brand rounded-full" />
                       )}
                     </div>
                     <button
@@ -1846,7 +1857,7 @@ function App() {
                         "absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all",
                         task.status === 'completed' 
                           ? "text-green-600 bg-green-50 dark:bg-green-900/20" 
-                          : "text-text-muted/30 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                          : "text-text-muted/30 hover:text-primary-brand hover:bg-primary-brand/10 dark:hover:bg-primary-brand/20"
                       )}
                     >
                       {task.status === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
@@ -1939,7 +1950,7 @@ function App() {
                               }}
                               className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-text-main dark:text-text-main-dark hover:bg-surface-muted dark:hover:bg-border-dark transition-colors"
                             >
-                              <Edit3 className="w-4 h-4 text-primary" />
+                              <Edit3 className="w-4 h-4 text-primary-brand" />
                               Edit Details
                             </button>
                             <button 
@@ -1993,7 +2004,7 @@ function App() {
 
                   <div className="flex flex-wrap gap-6">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <div className="w-8 h-8 rounded-xl bg-primary-brand/10 flex items-center justify-center text-primary-brand">
                         <Clock className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
@@ -2037,7 +2048,7 @@ function App() {
                         href={getGoogleCalendarLink(selectedTask)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2.5 px-5 py-3 bg-primary text-white rounded-2xl text-xs font-extrabold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95 group/cal"
+                        className="inline-flex items-center gap-2.5 px-5 py-3 bg-primary text-primary-foreground rounded-2xl text-xs font-extrabold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95 group/cal"
                       >
                         <Calendar className="w-4 h-4 group-hover/cal:rotate-12 transition-transform" />
                         Sync to Google Calendar
@@ -2064,7 +2075,7 @@ function App() {
               <div className="bento-card p-8 sm:p-10 space-y-8">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
+                    <div className="w-10 h-10 bg-primary-brand/10 rounded-2xl flex items-center justify-center text-primary-brand shrink-0">
                       <Layout className="w-5 h-5" />
                     </div>
                     <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark truncate">Checklist</h2>
@@ -2186,7 +2197,7 @@ function App() {
           )}
           title={isRightPanelOpen ? "Hide Key Ideas" : "Show Key Ideas"}
         >
-          {isRightPanelOpen ? <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary" /> : <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary" />}
+          {isRightPanelOpen ? <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary-brand" /> : <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary-brand" />}
         </motion.button>
 
         {/* Right Sidebar - Flashcards & Notes */}
@@ -2207,7 +2218,7 @@ function App() {
           <div className="p-8 flex-1 flex flex-col overflow-hidden w-full lg:w-[320px] xl:w-[384px]">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                <div className="w-10 h-10 bg-primary-brand/10 rounded-xl flex items-center justify-center text-primary-brand">
                   <BrainCircuit className="w-5 h-5" />
                 </div>
                 <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark">Key Ideas</h2>
@@ -2217,7 +2228,7 @@ function App() {
                   <button 
                     onClick={handleExplainTopic}
                     disabled={isAiLoading || aiError?.isRateLimit}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all border border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary-brand/10 text-primary-brand rounded-lg text-[10px] font-bold hover:bg-primary-brand/20 transition-all border border-primary-brand/20 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
                     <BrainCircuit className={cn("w-3 h-3", isExplaining && "animate-pulse")} />
                     {isExplaining ? "Thinking..." : aiError?.isRateLimit ? "Cooling down..." : "Explain Topic"}
@@ -2242,7 +2253,7 @@ function App() {
                       <button 
                         onClick={handleGenerateAIConcepts}
                         disabled={isAiLoading || aiError?.isRateLimit}
-                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary-brand/5 text-primary-brand rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <RotateCw className={cn("w-3 h-3", isGeneratingConcepts && "animate-spin")} />
                         {isGeneratingConcepts ? "Generating..." : aiError?.isRateLimit ? "Wait a min" : "AI Generate"}
@@ -2252,7 +2263,7 @@ function App() {
                       variant="ghost" 
                       size="icon" 
                       onClick={() => setIsAddingConcept(!isAddingConcept)} 
-                      className={cn("h-8 w-8 rounded-full", isAddingConcept ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-primary/5")}
+                      className={cn("h-8 w-8 rounded-full", isAddingConcept ? "text-primary-brand bg-primary-brand/10" : "text-text-muted hover:text-primary-brand hover:bg-primary-brand/5")}
                     >
                       {isAddingConcept ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                     </Button>
@@ -2331,7 +2342,7 @@ function App() {
                     <button 
                       onClick={handleGenerateAIFlashcards}
                       disabled={isAiLoading || aiError?.isRateLimit}
-                      className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary-brand/5 text-primary-brand rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RotateCw className={cn("w-3 h-3", isGeneratingFlashcards && "animate-spin")} />
                       {isGeneratingFlashcards ? "Generating..." : aiError?.isRateLimit ? "Wait a min" : "AI Generate"}
@@ -2341,7 +2352,7 @@ function App() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => setIsAddingFlashcard(!isAddingFlashcard)} 
-                    className={cn("h-8 w-8 rounded-full", isAddingFlashcard ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-primary/5")}
+                    className={cn("h-8 w-8 rounded-full", isAddingFlashcard ? "text-primary-brand bg-primary-brand/10" : "text-text-muted hover:text-primary-brand hover:bg-primary-brand/5")}
                   >
                     {isAddingFlashcard ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                   </Button>
@@ -2415,12 +2426,12 @@ function App() {
           onClick={() => setMobileActiveView('tasks')}
           className={cn(
             "flex flex-col items-center gap-1 transition-all",
-            mobileActiveView === 'tasks' ? "text-primary scale-110" : "text-text-muted"
+            mobileActiveView === 'tasks' ? "text-primary-brand scale-110" : "text-text-muted"
           )}
         >
           <div className={cn(
             "p-2 rounded-xl transition-all",
-            mobileActiveView === 'tasks' ? "bg-primary/10" : "bg-transparent"
+            mobileActiveView === 'tasks' ? "bg-primary-brand/10" : "bg-transparent"
           )}>
             <Layout className="w-6 h-6" />
           </div>
@@ -2431,12 +2442,12 @@ function App() {
           onClick={() => setMobileActiveView('dashboard')}
           className={cn(
             "flex flex-col items-center gap-1 transition-all",
-            mobileActiveView === 'dashboard' ? "text-primary scale-110" : "text-text-muted"
+            mobileActiveView === 'dashboard' ? "text-primary-brand scale-110" : "text-text-muted"
           )}
         >
           <div className={cn(
             "p-2 rounded-xl transition-all",
-            mobileActiveView === 'dashboard' ? "bg-primary/10" : "bg-transparent"
+            mobileActiveView === 'dashboard' ? "bg-primary-brand/10" : "bg-transparent"
           )}>
             <GraduationCap className="w-6 h-6" />
           </div>
@@ -2447,12 +2458,12 @@ function App() {
           onClick={() => setMobileActiveView('ideas')}
           className={cn(
             "flex flex-col items-center gap-1 transition-all",
-            mobileActiveView === 'ideas' ? "text-primary scale-110" : "text-text-muted"
+            mobileActiveView === 'ideas' ? "text-primary-brand scale-110" : "text-text-muted"
           )}
         >
           <div className={cn(
             "p-2 rounded-xl transition-all",
-            mobileActiveView === 'ideas' ? "bg-primary/10" : "bg-transparent"
+            mobileActiveView === 'ideas' ? "bg-primary-brand/10" : "bg-transparent"
           )}>
             <BrainCircuit className="w-6 h-6" />
           </div>
@@ -2528,7 +2539,7 @@ function App() {
                   className={cn(
                     "py-2 rounded-xl text-xs font-bold transition-all border",
                     taskModalRecurrence === type 
-                      ? "bg-primary text-white border-primary shadow-sm" 
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm" 
                       : "bg-surface-muted dark:bg-surface-muted-dark text-text-muted border-border dark:border-border-dark hover:border-primary/50"
                   )}
                 >
@@ -2671,7 +2682,7 @@ function App() {
       >
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+            <div className="w-12 h-12 bg-primary-brand/10 rounded-2xl flex items-center justify-center text-primary-brand">
               <BrainCircuit className={cn("w-6 h-6", isExplaining && "animate-pulse")} />
             </div>
             <div className="flex-1">
@@ -2683,7 +2694,7 @@ function App() {
           <div className="bg-surface-muted dark:bg-surface-muted-dark/50 rounded-3xl p-6 border border-border dark:border-border-dark min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
             {isExplaining ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-primary-brand/30 border-t-primary-brand rounded-full animate-spin" />
                 <p className="text-sm font-bold text-text-main/60 dark:text-text-main-dark/60">Gemini is thinking...</p>
               </div>
             ) : (

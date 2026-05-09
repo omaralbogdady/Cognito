@@ -12,6 +12,8 @@
   --color-primary-hover: var(--primary-hover-color, #2563EB);
   --color-primary-light: var(--primary-light-color, #EFF6FF);
   --color-primary-dark: var(--primary-dark-color, #1D4ED8);
+  --color-primary-foreground: var(--primary-foreground, #FFFFFF);
+  --color-primary-brand: var(--primary-brand-color, var(--primary-color, #3B82F6));
   
   --color-surface: #F5F7FA;
   --color-surface-dark: #121212;
