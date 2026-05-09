@@ -27,7 +27,8 @@ import {
   getDocFromServer,
   getDoc,
   setDoc,
-  deleteField
+  deleteField,
+  writeBatch
 } from 'firebase/firestore';
 import firebaseConfigJson from '../firebase-applet-config.json';
 
@@ -84,6 +85,7 @@ export {
   getDoc,
   setDoc,
   deleteField,
+  writeBatch,
   GoogleAuthProvider
 };
 export type { User };

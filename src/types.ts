@@ -1,6 +1,7 @@
 export type TaskType = 'assignment' | 'exam';
 export type NoteType = 'concept' | 'flashcard';
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'none';
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface Task {
   id: string;
@@ -9,6 +10,7 @@ export interface Task {
   type: TaskType;
   dueDate?: Date;
   status: 'pending' | 'completed';
+  priority: TaskPriority;
   progress: number;
   description: string;
   createdAt: Date;

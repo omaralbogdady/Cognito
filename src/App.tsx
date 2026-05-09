@@ -28,6 +28,7 @@ import {
   getDoc,
   setDoc,
   deleteField,
+  writeBatch,
   GoogleAuthProvider,
   deleteUser,
   reauthenticateWithPopup
@@ -38,6 +39,8 @@ import {
   GraduationCap,
   Plus, 
   CheckCircle2, 
+  Check,
+  CheckSquare,
   Circle, 
   Search, 
   Moon, 
@@ -68,7 +71,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'motion/react';
 import { cn } from './lib/utils';
-import { Task, SubTask, Note, TaskType, UserProfile, RecurrenceType } from './types';
+import { Task, SubTask, Note, TaskType, UserProfile, RecurrenceType, TaskPriority } from './types';
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
 import { LandingPage } from './components/LandingPage';
 import { Onboarding } from './components/Onboarding';
@@ -159,9 +162,9 @@ function handleFirestoreError(error: any, operationType: OperationType, path: st
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  // We don't throw here to avoid crashing the UI, but we log it.
-  return errInfo;
+  const errorString = JSON.stringify(errInfo);
+  console.error('Firestore Error: ', errorString);
+  throw new Error(errorString);
 }
 
 // --- Components ---
@@ -447,6 +450,68 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<TaskType>('assignment');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const toggleTaskSelection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTaskIds(prev => 
+      prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedTaskIds.length === 0) {
+      alert("Please select items to delete first.");
+      return;
+    }
+    setIsBulkActionsMenuOpen(false);
+    setIsBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!user || isBulkDeleting || selectedTaskIds.length === 0) return;
+    
+    const idsToDelete = [...selectedTaskIds];
+    const totalToDelete = idsToDelete.length;
+    console.log(`Starting bulk delete for ${totalToDelete} items...`);
+    
+    setIsBulkDeleting(true);
+    try {
+      // Use batches of 500 (Firestore limit) just in case, though usually less
+      const batchSize = 400;
+      for (let i = 0; i < idsToDelete.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const chunk = idsToDelete.slice(i, i + batchSize);
+        
+        chunk.forEach(id => {
+          const docRef = doc(db, 'tasks', id);
+          batch.delete(docRef);
+        });
+        
+        await batch.commit();
+        console.log(`Committed batch of ${chunk.length} deletions.`);
+      }
+      
+      console.log("Bulk delete successful.");
+      
+      setSelectedTaskIds([]);
+      setIsBulkMode(false);
+      setIsBulkDeleteModalOpen(false);
+      
+      if (selectedTaskId && idsToDelete.includes(selectedTaskId)) {
+        const remainingTasks = tasks.filter(t => !idsToDelete.includes(t.id));
+        setSelectedTaskId(remainingTasks.length > 0 ? remainingTasks[0].id : null);
+      }
+    } catch (error: any) {
+      console.error("Bulk delete operation failed:", error);
+      alert("Failed to delete items: " + (error.message || "Unknown error"));
+      handleFirestoreError(error, OperationType.DELETE, 'tasks (bulk)');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
   const [tasks, setTasks] = useState<Task[]>([]);
   const [subtasks, setSubtasks] = useState<SubTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -472,6 +537,9 @@ function App() {
   const [isExplaining, setIsExplaining] = useState(false);
   const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [aiError, setAiError] = useState<{ message: string; type: AIErrorType; isRateLimit: boolean } | null>(null);
+
+  const isAiLoading = isExplaining || isGeneratingConcepts || isGeneratingFlashcards;
 
   // Task Modal State
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -480,6 +548,7 @@ function App() {
   const [taskModalDesc, setTaskModalDesc] = useState('');
   const [taskModalDueDate, setTaskModalDueDate] = useState('');
   const [taskModalRecurrence, setTaskModalRecurrence] = useState<RecurrenceType>('none');
+  const [taskModalPriority, setTaskModalPriority] = useState<TaskPriority>('medium');
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
   // Delete Confirmation State
@@ -496,6 +565,8 @@ function App() {
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkActionsMenuOpen, setIsBulkActionsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
@@ -549,6 +620,16 @@ function App() {
     });
     return unsub;
   }, [user]);
+
+  // AI Error Auto-clear
+  useEffect(() => {
+    if (aiError) {
+      const timer = setTimeout(() => {
+        setAiError(null);
+      }, 60000); // Clear after 1 min
+      return () => clearTimeout(timer);
+    }
+  }, [aiError]);
 
   // Tasks Listener
   useEffect(() => {
@@ -706,7 +787,7 @@ function App() {
   };
 
   const handleExplainTopic = async () => {
-    if (!selectedTask || !user) return;
+    if (!selectedTask || !user || aiError?.isRateLimit) return;
     setIsExplaining(true);
     setIsExplainmentModalOpen(true);
     setExplainmentContent('');
@@ -717,6 +798,11 @@ function App() {
       console.error("AI Error:", error);
       if (error instanceof GeminiError) {
         if (error.type === AIErrorType.RATE_LIMIT) {
+          setAiError({ 
+            message: "AI rate limit reached. Let's wait a minute.", 
+            type: AIErrorType.RATE_LIMIT,
+            isRateLimit: true 
+          });
           setExplainmentContent(`### ⏳ Slow Down a Bit!\n\nYou've reached the AI request limit. Let's take a short break—Gemini will be ready to help you again in about a minute.\n\n*Study tip: While waiting, try reviewing your current tasks or organizing your notes!*`);
         } else {
           setExplainmentContent(`**AI Service Error (${error.type})**\n\n${error.message}`);
@@ -730,7 +816,7 @@ function App() {
   };
 
   const handleGenerateAIConcepts = async () => {
-    if (!selectedTask || !user) return;
+    if (!selectedTask || !user || aiError?.isRateLimit) return;
     setIsGeneratingConcepts(true);
     try {
       const generated = await generateConcepts(selectedTask.title, selectedTask.description);
@@ -744,18 +830,26 @@ function App() {
       await Promise.all(addPromises);
     } catch (error: any) {
       console.error("AI Error:", error);
-      let errorMessage = error instanceof GeminiError ? error.message : (error.message || "Failed to generate concepts");
       if (error instanceof GeminiError && error.type === AIErrorType.RATE_LIMIT) {
-        errorMessage = "You've hit the speed limit! Please wait about a minute before generating more concepts so Gemini can catch up.";
+        setAiError({ 
+          message: "Rate limit hit! Waiting a minute...", 
+          type: AIErrorType.RATE_LIMIT,
+          isRateLimit: true 
+        });
+      } else {
+        setAiError({ 
+          message: error.message || "Failed to generate concepts", 
+          type: error instanceof GeminiError ? error.type : AIErrorType.UNKNOWN,
+          isRateLimit: false 
+        });
       }
-      alert(errorMessage);
     } finally {
       setIsGeneratingConcepts(false);
     }
   };
 
   const handleGenerateAIFlashcards = async () => {
-    if (!selectedTask || !user) return;
+    if (!selectedTask || !user || aiError?.isRateLimit) return;
     setIsGeneratingFlashcards(true);
     try {
       const generated = await generateFlashcards(selectedTask.title, selectedTask.description);
@@ -771,11 +865,19 @@ function App() {
       await Promise.all(addPromises);
     } catch (error: any) {
       console.error("AI Error:", error);
-      let errorMessage = error instanceof GeminiError ? error.message : (error.message || "Failed to generate flashcards");
       if (error instanceof GeminiError && error.type === AIErrorType.RATE_LIMIT) {
-        errorMessage = "Steady on! You've reached the rate limit. Gemini needs a quick 60-second recharge before creating more flashcards.";
+        setAiError({ 
+          message: "Gemini needs a recharge (1 min wait).", 
+          type: AIErrorType.RATE_LIMIT,
+          isRateLimit: true 
+        });
+      } else {
+        setAiError({ 
+          message: error.message || "Failed to generate flashcards", 
+          type: error instanceof GeminiError ? error.type : AIErrorType.UNKNOWN,
+          isRateLimit: false 
+        });
       }
-      alert(errorMessage);
     } finally {
       setIsGeneratingFlashcards(false);
     }
@@ -859,6 +961,7 @@ function App() {
     setTaskModalDesc('');
     setTaskModalDueDate('');
     setTaskModalRecurrence('none');
+    setTaskModalPriority('medium');
     setIsTaskModalOpen(true);
   };
 
@@ -869,6 +972,7 @@ function App() {
     setTaskModalDesc(task.description || '');
     setTaskModalDueDate(task.dueDate ? format(task.dueDate, "yyyy-MM-dd'T'HH:mm") : '');
     setTaskModalRecurrence(task.recurrence || 'none');
+    setTaskModalPriority(task.priority || 'medium');
     setIsTaskModalOpen(true);
   };
 
@@ -878,13 +982,14 @@ function App() {
 
     const taskData: any = {
       userId: user.uid,
-      title: taskModalTitle,
-      description: taskModalDesc,
+      title: taskModalTitle || '',
+      description: taskModalDesc || '',
       type: activeTab,
       status: taskToEdit?.status || 'pending',
+      priority: taskModalPriority || 'medium',
       progress: taskToEdit?.progress || 0,
       createdAt: taskToEdit?.createdAt ? Timestamp.fromDate(taskToEdit.createdAt) : Timestamp.now(),
-      recurrence: taskModalRecurrence
+      recurrence: taskModalRecurrence || 'none'
     };
 
     if (taskModalDueDate) {
@@ -958,7 +1063,8 @@ function App() {
             progress: 0,
             createdAt: Timestamp.now(),
             dueDate: Timestamp.fromDate(nextDueDate),
-            recurrence: task.recurrence,
+            recurrence: task.recurrence || 'none',
+            priority: task.priority || 'medium',
             parentId: task.parentId || task.id
           });
         }
@@ -1361,26 +1467,44 @@ function App() {
       <main className="flex-1 flex overflow-hidden relative">
         
         {/* Left Sidebar Toggle */}
-        <button 
+        <motion.button 
+          initial={false}
+          animate={{ 
+            left: isSidebarOpen ? 320 : 16,
+            x: isSidebarOpen ? "-50%" : "0%"
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
-            isSidebarOpen ? "left-80 -translate-x-1/2" : "left-4",
+            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-transform hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
             showOnboarding && "opacity-0 pointer-events-none"
           )}
           title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
         >
           {isSidebarOpen ? <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary" /> : <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary" />}
-        </button>
+        </motion.button>
 
         {/* Left Sidebar - Task List */}
-        <aside className={cn(
-          "border-r border-border dark:border-border-dark flex flex-col bg-surface-muted dark:bg-surface-dark/50 backdrop-blur-sm transition-all duration-300",
-          !isSidebarOpen && "lg:-ml-80",
-          "fixed top-20 bottom-20 inset-x-0 z-40 lg:relative lg:top-0 lg:bottom-0 lg:inset-auto lg:w-80",
-          mobileActiveView === 'tasks' ? "flex" : "hidden lg:flex"
-        )}>
-          <div className="p-6 space-y-6">
+        <motion.aside 
+          initial={false}
+          animate={{ 
+            width: isSidebarOpen ? (window.innerWidth >= 1024 ? 320 : '100%') : 0,
+            opacity: isSidebarOpen ? 1 : 0
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className={cn(
+            "border-r border-border dark:border-border-dark flex flex-col bg-surface-muted dark:bg-surface-dark/50 backdrop-blur-sm shadow-sm overflow-hidden",
+            "fixed inset-y-0 left-0 z-40 lg:relative lg:w-80",
+            mobileActiveView === 'tasks' ? "flex w-full" : "hidden lg:flex"
+          )}
+        >
+          <div className="flex items-center justify-between p-6 pb-0 lg:hidden">
+            <h2 className="text-xl font-extrabold tracking-tight text-text-main dark:text-text-main-dark uppercase">Tasks</h2>
+            <Button variant="ghost" size="icon" onClick={() => setMobileActiveView('dashboard')} className="rounded-full">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <div className="p-6 space-y-6 w-full lg:w-80">
             <div className="relative p-1.5 bg-border/30 dark:bg-surface-muted-dark rounded-2xl flex">
               <motion.div 
                 layoutId="active-tab-bg"
@@ -1411,10 +1535,98 @@ function App() {
               </button>
             </div>
 
-            <Button onClick={openAddTask} className="w-full gap-2 py-6 rounded-2xl text-sm">
-              <Plus className="w-5 h-5" />
-              New {activeTab === 'assignment' ? 'Assignment' : 'Exam'}
-            </Button>
+            <div className="flex items-center gap-3">
+              {isBulkMode ? (
+                <div className="flex-1 flex flex-col gap-2">
+                  <Button 
+                    variant="primary" 
+                    onClick={() => setIsBulkActionsMenuOpen(!isBulkActionsMenuOpen)} 
+                    className={cn(
+                      "w-full gap-2 py-6 rounded-2xl text-sm transition-all",
+                      selectedTaskIds.length === 0 && "opacity-50 grayscale cursor-not-allowed",
+                      isBulkActionsMenuOpen && "rounded-b-none border-b-0"
+                    )}
+                    disabled={selectedTaskIds.length === 0 || isBulkDeleting}
+                  >
+                    <MoreVertical className="w-5 h-5 transition-transform duration-300" style={{ transform: isBulkActionsMenuOpen ? 'rotate(90deg)' : 'none' }} />
+                    Bulk Actions {selectedTaskIds.length > 0 ? `(${selectedTaskIds.length})` : ''}
+                  </Button>
+                  
+                  <AnimatePresence>
+                    {isBulkActionsMenuOpen && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                        className="overflow-hidden bg-surface dark:bg-surface-muted-dark rounded-b-2xl shadow-xl border border-border dark:border-border-dark -mt-2 border-t-0"
+                      >
+                        <button 
+                          onClick={handleBulkDelete}
+                          className="w-full flex items-center gap-3 px-4 py-4 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Selected {activeTab}s
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedTaskIds([]);
+                            setIsBulkActionsMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-4 text-sm font-bold text-text-main dark:text-text-main-dark hover:bg-surface-muted dark:hover:bg-border-dark transition-colors border-t border-border dark:border-border-dark"
+                        >
+                          <X className="w-4 h-4 text-text-muted" />
+                          Clear Selection
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Button onClick={openAddTask} className="flex-1 gap-2 py-6 rounded-2xl text-sm">
+                  <Plus className="w-5 h-5" />
+                  New {activeTab === 'assignment' ? 'Assignment' : 'Exam'}
+                </Button>
+              )}
+              <button 
+                onClick={() => {
+                  const newMode = !isBulkMode;
+                  setIsBulkMode(newMode);
+                  if (!newMode) setSelectedTaskIds([]);
+                }}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all h-[60px] w-[60px] flex items-center justify-center shrink-0 relative group",
+                  isBulkMode 
+                    ? "bg-primary text-white border-primary shadow-lg ring-4 ring-primary/10" 
+                    : "bg-surface dark:bg-surface-muted-dark border-border dark:border-border-dark text-text-muted hover:text-primary hover:border-primary/50"
+                )}
+                title={isBulkMode ? "Cancel Multi-select" : "Bulk Actions"}
+              >
+                <div className="relative z-10 transition-transform group-active:scale-90">
+                  <CheckSquare className="w-5 h-5" />
+                  <AnimatePresence>
+                    {isBulkMode && selectedTaskIds.length > 0 && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute -top-3 -right-3 min-w-[20px] h-5 px-1 bg-white text-primary text-[10px] font-black rounded-full flex items-center justify-center shadow-lg border-2 border-primary z-20"
+                      >
+                        {selectedTaskIds.length}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                {isBulkMode && (
+                  <motion.div 
+                    layoutId="bulk-glow"
+                    className="absolute inset-0 bg-white/10 blur-xl pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  />
+                )}
+              </button>
+            </div>
 
             <div className="relative flex items-center bg-surface dark:bg-surface-muted-dark rounded-2xl px-4 py-3.5 border border-border dark:border-border-dark shadow-sm transition-all focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/40 group">
               <Search className="w-4 h-4 text-text-muted mr-3 group-focus-within:text-primary transition-colors" />
@@ -1476,24 +1688,86 @@ function App() {
                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                         className="relative group"
                       >
-                    <button
-                      onClick={() => {
-                        setSelectedTaskId(task.id);
-                        setMobileActiveView('dashboard');
-                        setIsTaskMenuOpen(false);
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        if (isBulkMode) {
+                          toggleTaskSelection(task.id, e);
+                        } else {
+                          setSelectedTaskId(task.id);
+                          setMobileActiveView('dashboard');
+                          setIsTaskMenuOpen(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (isBulkMode) {
+                            toggleTaskSelection(task.id, e as any);
+                          } else {
+                            setSelectedTaskId(task.id);
+                            setMobileActiveView('dashboard');
+                            setIsTaskMenuOpen(false);
+                          }
+                        }
                       }}
                       className={cn(
-                        "w-full text-left p-5 rounded-[1.5rem] transition-all relative pr-24 border-2",
-                        selectedTaskId === task.id 
+                        "w-full text-left p-5 rounded-[1.5rem] transition-all relative pr-12 border-2 cursor-pointer",
+                        selectedTaskId === task.id && !isBulkMode
                           ? "bg-surface dark:bg-surface-muted-dark border-primary/20 shadow-xl shadow-primary/10 text-primary dark:text-text-main-dark scale-[1.02]" 
-                          : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark hover:scale-[1.01]"
+                          : selectedTaskIds.includes(task.id)
+                            ? "bg-primary/5 dark:bg-primary/10 border-primary shadow-md text-primary scale-[1.01]"
+                            : "bg-transparent border-transparent hover:bg-surface/50 dark:hover:bg-surface-muted-dark/50 text-text-main/60 dark:text-text-main-dark/60 hover:text-text-main dark:hover:text-text-main-dark hover:scale-[1.01]"
                       )}
                     >
+                      {isBulkMode && (
+                        <div 
+                          className={cn(
+                            "absolute top-4 right-4 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                            selectedTaskIds.includes(task.id)
+                              ? "bg-primary border-primary text-white"
+                              : "border-border dark:border-border-dark bg-white/50 dark:bg-black/20"
+                          )}
+                        >
+                          {selectedTaskIds.includes(task.id) && <Check className="w-4 h-4" />}
+                        </div>
+                      )}
+                      {!isBulkMode && (
+                        <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          {userProfile?.calendarSyncEnabled && (
+                            <a 
+                              href={getGoogleCalendarLink(task)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-8 h-8 rounded-full text-text-muted hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center bg-surface/80 dark:bg-surface-muted-dark/80 backdrop-blur-sm"
+                              title="Add to Google Calendar"
+                            >
+                              <Calendar className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full w-8 h-8 bg-surface/80 dark:bg-surface-muted-dark/80 backdrop-blur-sm shadow-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTaskToEdit(task);
+                              openEditTask(task);
+                            }}
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className={cn(
                             "w-1.5 h-1.5 rounded-full",
-                            task.status === 'completed' ? "bg-green-500" : "bg-primary"
+                            task.priority === 'high' ? "bg-red-500 shadow-sm shadow-red-500/50" :
+                            task.priority === 'medium' ? "bg-amber-500" :
+                            "bg-blue-400"
                           )} />
                           <span className={cn(
                             "text-[10px] font-extrabold uppercase tracking-[0.2em]",
@@ -1505,33 +1779,62 @@ function App() {
                             <RotateCw className="w-3 h-3 text-primary/60" />
                           )}
                         </div>
-                        {task.dueDate && (
-                          <span className="text-[9px] font-bold text-text-muted/60">
-                            {format(task.dueDate, 'MMM d')}
-                          </span>
-                        )}
                       </div>
                       <h3 className={cn("text-sm font-bold line-clamp-2 tracking-tight leading-snug", task.status === 'completed' && "line-through opacity-50")}>{task.title}</h3>
-                      <div className="flex items-center gap-2 mt-2.5 text-[10px] font-medium opacity-70">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{task.dueDate ? format(task.dueDate, 'MMM d, yyyy') : 'No due date'}</span>
+                      <div className="flex items-center gap-2 mt-2.5">
+                        <div className="flex items-center gap-1.5 text-[10px] font-medium opacity-70">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{task.dueDate ? format(task.dueDate, 'MMM d, yyyy') : 'No due date'}</span>
+                        </div>
+                        <span className={cn(
+                          "ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                          task.priority === 'high' ? "text-red-600 bg-red-100/50 dark:bg-red-900/30 dark:text-red-400" :
+                          task.priority === 'medium' ? "text-amber-600 bg-amber-100/50 dark:bg-amber-900/30 dark:text-amber-400" :
+                          "text-blue-600 bg-blue-100/50 dark:bg-blue-900/30 dark:text-blue-400"
+                        )}>
+                          {task.priority}
+                        </span>
                       </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="mt-4 space-y-1.5 px-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
+                          <span className={cn(
+                            "opacity-40",
+                            selectedTaskId === task.id ? "text-primary opacity-60" : "text-text-main dark:text-text-main-dark"
+                          )}>
+                            {task.status === 'completed' ? 'Mastered' : 'Progress'}
+                          </span>
+                          <span className={cn(
+                            "font-black px-1.5 py-0.5 rounded-full",
+                            task.status === 'completed' 
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400" 
+                              : selectedTaskId === task.id ? "text-primary bg-primary/10" : "text-text-main/60 dark:text-text-main-dark/60 bg-black/5 dark:bg-white/5"
+                          )}>
+                            {task.status === 'completed' ? '100' : task.progress}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-black/[0.03] dark:border-white/[0.03]">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${task.status === 'completed' ? 100 : task.progress}%` }}
+                            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                            className={cn(
+                              "h-full rounded-full transition-all duration-700",
+                              task.status === 'completed' 
+                                ? "bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]" 
+                                : task.progress > 75 
+                                  ? "bg-gradient-to-r from-primary to-primary/80" 
+                                  : task.progress > 30 
+                                    ? "bg-gradient-to-r from-amber-400 to-amber-300" 
+                                    : "bg-gradient-to-r from-primary/60 to-primary/40"
+                            )}
+                          />
+                        </div>
+                      </div>
+
                       {selectedTaskId === task.id && (
                         <motion.div layoutId="active-indicator" className="absolute left-0 top-4 bottom-4 w-1 bg-primary rounded-full" />
-                      )}
-                    </button>
-                    <div className="absolute right-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {userProfile?.calendarSyncEnabled && (
-                        <a 
-                          href={getGoogleCalendarLink(task)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2.5 rounded-xl text-text-muted hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center"
-                          title="Add to Google Calendar"
-                        >
-                          <Calendar className="w-4 h-4" />
-                        </a>
                       )}
                     </div>
                     <button
@@ -1553,13 +1856,53 @@ function App() {
               </AnimatePresence>
             )}
           </motion.div>
-        </aside>
+        </motion.aside>
 
         {/* Center Panel - Task Details */}
         <section className={cn(
           "flex-1 min-w-0 overflow-y-auto bg-surface dark:bg-surface-dark p-4 sm:p-6 lg:p-4 xl:p-12 custom-scrollbar pb-24 lg:pb-12",
           mobileActiveView !== 'dashboard' && "hidden lg:block"
         )}>
+          {/* AI Error Notification Banner */}
+          <AnimatePresence>
+            {aiError && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                className={cn(
+                  "max-w-4xl mx-auto w-full mb-6 overflow-hidden",
+                  aiError.isRateLimit ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
+                )}
+              >
+                <div className={cn(
+                  "p-4 rounded-2xl flex items-center gap-3 border backdrop-blur-sm",
+                  aiError.isRateLimit 
+                    ? "bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800/50" 
+                    : "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800/50"
+                )}>
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                    aiError.isRateLimit ? "bg-amber-100 dark:bg-amber-900/30" : "bg-red-100 dark:bg-red-900/30"
+                  )}>
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-0.5">
+                      {aiError.isRateLimit ? "AI Rate Limit" : "AI Service Error"}
+                    </p>
+                    <p className="text-sm font-bold leading-tight">{aiError.message}</p>
+                  </div>
+                  <button 
+                    onClick={() => setAiError(null)}
+                    className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {selectedTask ? (
             <motion.div 
               key={selectedTask.id}
@@ -1625,6 +1968,14 @@ function App() {
                       )}>
                         {selectedTask.type}
                       </div>
+                      <div className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest",
+                        selectedTask.priority === 'high' ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" :
+                        selectedTask.priority === 'medium' ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" :
+                        "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                      )}>
+                        {selectedTask.priority} priority
+                      </div>
                       {selectedTask.status === 'completed' && (
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-extrabold uppercase tracking-widest">
                           <CheckCircle2 className="w-3 h-3" />
@@ -1656,9 +2007,22 @@ function App() {
                       <div className="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-widest">Progress</span>
-                        <span className="text-sm font-bold text-text-main dark:text-text-main-dark">{selectedTask.progress}% Complete</span>
+                      <div className="flex flex-col flex-1 max-w-[200px]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-extrabold text-text-main/50 dark:text-text-main-dark/50 uppercase tracking-widest">Progress</span>
+                          <span className="text-[10px] font-black text-green-600 dark:text-green-400">{selectedTask.status === 'completed' ? 100 : selectedTask.progress}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${selectedTask.status === 'completed' ? 100 : selectedTask.progress}%` }}
+                            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                            className={cn(
+                              "h-full rounded-full",
+                              selectedTask.status === 'completed' ? "bg-green-500" : "bg-green-500/80"
+                            )}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1683,9 +2047,9 @@ function App() {
                 </div>
               </div>
 
-              {/* Description & Progress Bento Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 bento-card p-8 space-y-4">
+              {/* Description Bento Row */}
+              <div className="grid grid-cols-1 gap-6">
+                <div className="bento-card p-8 space-y-4">
                   <div className="flex items-center gap-2 text-xs-bold text-text-muted">
                     <Edit3 className="w-3.5 h-3.5" />
                     Description
@@ -1693,39 +2057,6 @@ function App() {
                   <p className="text-sm text-text-main dark:text-text-main-dark leading-relaxed whitespace-pre-wrap font-medium">
                     {selectedTask.description || "No description provided for this task."}
                   </p>
-                </div>
-                <div className="bento-card p-8 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-xs-bold text-text-muted">
-                      <RotateCw className="w-3.5 h-3.5" />
-                      Completion
-                    </div>
-                    <div className="relative w-24 h-24 mx-auto">
-                      <svg className="w-full h-full" viewBox="0 0 36 36">
-                        <path
-                          className="text-border dark:text-border-dark stroke-current"
-                          strokeWidth="3"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <motion.path
-                          className="text-primary stroke-current"
-                          strokeWidth="3"
-                          strokeDasharray={`${selectedTask.progress}, 100`}
-                          strokeLinecap="round"
-                          fill="none"
-                          initial={{ strokeDasharray: "0, 100" }}
-                          animate={{ strokeDasharray: `${selectedTask.progress}, 100` }}
-                          transition={{ duration: 1, ease: "easeOut" }}
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xl font-extrabold text-text-main dark:text-text-main-dark">{selectedTask.progress}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-center text-text-main/40 dark:text-text-main-dark/40 font-bold uppercase tracking-widest mt-4">Task Mastery</p>
                 </div>
               </div>
 
@@ -1840,27 +2171,40 @@ function App() {
         </section>
 
         {/* Right Sidebar Toggle */}
-        <button 
+        <motion.button 
+          initial={false}
+          animate={{ 
+            right: isRightPanelOpen ? (window.innerWidth >= 1280 ? 384 : 320) : 16,
+            x: isRightPanelOpen ? "50%" : "0%",
+            rotate: isRightPanelOpen ? 0 : 0
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
           className={cn(
-            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
-            isRightPanelOpen ? "lg:right-80 xl:right-96 translate-x-1/2" : "right-4",
+            "hidden lg:flex absolute top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-surface dark:bg-surface-muted-dark border border-border dark:border-border-dark rounded-full shadow-lg items-center justify-center transition-transform hover:scale-110 hover:bg-surface-muted dark:hover:bg-border-dark group",
             showOnboarding && "opacity-0 pointer-events-none"
           )}
           title={isRightPanelOpen ? "Hide Key Ideas" : "Show Key Ideas"}
         >
           {isRightPanelOpen ? <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary" /> : <ChevronLeft className="w-4 h-4 text-text-muted group-hover:text-primary" />}
-        </button>
+        </motion.button>
 
         {/* Right Sidebar - Flashcards & Notes */}
-        <aside className={cn(
-          "w-full lg:w-80 xl:w-96 border-l border-border dark:border-border-dark flex flex-col bg-surface-muted dark:bg-surface-dark/50 backdrop-blur-sm transition-all duration-300",
-          !isRightPanelOpen && "lg:-mr-80 xl:-mr-96",
-          "fixed top-20 bottom-20 inset-x-0 z-40 lg:relative lg:top-0 lg:bottom-0 lg:inset-auto",
-          mobileActiveView === 'ideas' ? "flex translate-x-0" : "hidden lg:flex",
-          "max-w-3xl mx-auto lg:max-w-none"
-        )}>
-          <div className="p-8 flex-1 flex flex-col overflow-hidden">
+        <motion.aside 
+          initial={false}
+          animate={{ 
+            width: isRightPanelOpen ? (window.innerWidth >= 1280 ? 384 : (window.innerWidth >= 1024 ? 320 : '100%')) : 0,
+            opacity: isRightPanelOpen ? 1 : 0
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className={cn(
+            "border-l border-border dark:border-border-dark flex flex-col bg-surface-muted dark:bg-surface-dark/50 backdrop-blur-sm overflow-hidden",
+            "fixed inset-y-0 right-0 z-40 lg:relative",
+            mobileActiveView === 'ideas' ? "flex w-full" : "hidden lg:flex",
+            "lg:max-w-none"
+          )}
+        >
+          <div className="p-8 flex-1 flex flex-col overflow-hidden w-full lg:w-[320px] xl:w-[384px]">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -1872,10 +2216,11 @@ function App() {
                 {userProfile?.aiEnabled && selectedTask && (
                   <button 
                     onClick={handleExplainTopic}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all border border-primary/20"
+                    disabled={isAiLoading || aiError?.isRateLimit}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all border border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
-                    <BrainCircuit className="w-3 h-3" />
-                    Explain Topic
+                    <BrainCircuit className={cn("w-3 h-3", isExplaining && "animate-pulse")} />
+                    {isExplaining ? "Thinking..." : aiError?.isRateLimit ? "Cooling down..." : "Explain Topic"}
                   </button>
                 )}
                 <Button variant="ghost" size="icon" className="lg:hidden rounded-full" onClick={() => setMobileActiveView('dashboard')}>
@@ -1896,11 +2241,11 @@ function App() {
                     {userProfile?.aiEnabled && selectedTask && (
                       <button 
                         onClick={handleGenerateAIConcepts}
-                        disabled={isGeneratingConcepts}
-                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+                        disabled={isAiLoading || aiError?.isRateLimit}
+                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <RotateCw className={cn("w-3 h-3", isGeneratingConcepts && "animate-spin")} />
-                        AI Generate
+                        {isGeneratingConcepts ? "Generating..." : aiError?.isRateLimit ? "Wait a min" : "AI Generate"}
                       </button>
                     )}
                     <Button 
@@ -1985,11 +2330,11 @@ function App() {
                   {userProfile?.aiEnabled && selectedTask && (
                     <button 
                       onClick={handleGenerateAIFlashcards}
-                      disabled={isGeneratingFlashcards}
-                      className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+                      disabled={isAiLoading || aiError?.isRateLimit}
+                      className="flex items-center gap-1.5 px-2 py-1 hover:bg-primary/5 text-primary rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RotateCw className={cn("w-3 h-3", isGeneratingFlashcards && "animate-spin")} />
-                      AI Generate
+                      {isGeneratingFlashcards ? "Generating..." : aiError?.isRateLimit ? "Wait a min" : "AI Generate"}
                     </button>
                   )}
                   <Button 
@@ -2060,7 +2405,7 @@ function App() {
                   )}
                 </div>
               </div>
-            </aside>
+            </motion.aside>
 
       </main>
 
@@ -2145,6 +2490,34 @@ function App() {
             onChange={(e: any) => setTaskModalDueDate(e.target.value)}
           />
           <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase ml-1">Priority</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['low', 'medium', 'high'] as TaskPriority[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setTaskModalPriority(p)}
+                  className={cn(
+                    "py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2",
+                    taskModalPriority === p 
+                      ? (p === 'high' ? "bg-red-500 text-white border-red-500 shadow-md" : 
+                         p === 'medium' ? "bg-amber-500 text-white border-amber-500 shadow-md" : 
+                         "bg-blue-500 text-white border-blue-500 shadow-md")
+                      : "bg-surface-muted dark:bg-surface-muted-dark text-text-muted border-border dark:border-border-dark hover:border-primary/50"
+                  )}
+                >
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    taskModalPriority === p 
+                      ? "bg-white" 
+                      : (p === 'high' ? "bg-red-500" : p === 'medium' ? "bg-amber-500" : "bg-blue-500")
+                  )} />
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase ml-1">Recurrence</label>
             <div className="grid grid-cols-4 gap-2">
               {(['none', 'daily', 'weekly', 'monthly'] as RecurrenceType[]).map((type) => (
@@ -2197,6 +2570,38 @@ function App() {
             </Button>
             <Button variant="danger" className="flex-1" onClick={deleteTask}>
               Delete Task
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal 
+        isOpen={isBulkDeleteModalOpen} 
+        onClose={() => setIsBulkDeleteModalOpen(false)} 
+        title="Delete Multiple Items"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center text-red-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-red-900 dark:text-red-200">Delete {selectedTaskIds.length} items?</p>
+              <p className="text-xs text-red-700 dark:text-red-400">This action cannot be undone. All selected {activeTab}s, their subtasks, and notes will be permanently removed.</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              className="flex-1" 
+              onClick={confirmBulkDelete}
+              isLoading={isBulkDeleting}
+            >
+              Delete {selectedTaskIds.length} Items
             </Button>
           </div>
         </div>
