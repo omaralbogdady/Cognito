@@ -13,7 +13,8 @@
         "calendarSyncEnabled": { "type": "boolean" },
         "aiEnabled": { "type": "boolean" },
         "hasCompletedOnboarding": { "type": "boolean" },
-        "themeColor": { "type": "string" }
+        "themeColor": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] }
       },
       "required": ["uid", "email"]
     },

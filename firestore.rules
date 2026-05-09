@@ -1,132 +1,171 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     // ===============================================================
-    // Helper Functions
+    // Global Safety Net: Default Deny
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Shared Helper Functions (Phase 3)
     // ===============================================================
     
-    function isAuthenticated() {
+    function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        (
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-          (request.auth.token.email == "oalbogdady1@gmail.com" && request.auth.token.email_verified == true)
-        );
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin') ||
+        (request.auth.token.email == "oalbogdady1@gmail.com" && request.auth.token.email_verified == true)
+      );
     }
 
-    function isTaskOwner(taskId) {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/tasks/$(taskId)) &&
-             get(/databases/$(database)/documents/tasks/$(taskId)).data.userId == request.auth.uid;
+    function incoming() {
+      return request.resource.data;
     }
 
-    // Validation Helpers
-    function isValidString(val, maxLen) {
-      return val is string && val.size() > 0 && val.size() <= maxLen;
+    function existing() {
+      return resource.data;
     }
 
-    function isValidTask(data) {
-      let allowedFields = ['userId', 'title', 'type', 'status', 'priority', 'progress', 'createdAt', 'description', 'dueDate', 'calendarEventId', 'recurrence', 'parentId'];
-      return allowedFields.hasAll(data.keys()) &&
-             data.userId == request.auth.uid &&
-             isValidString(data.title, 100) &&
-             data.type in ['assignment', 'exam'] &&
-             data.status in ['pending', 'completed'] &&
-             (!('priority' in data) || data.priority in ['low', 'medium', 'high']) &&
-             (!('progress' in data) || (data.progress is number && data.progress >= 0 && data.progress <= 100)) &&
-             data.createdAt is timestamp &&
-             (!('dueDate' in data) || data.dueDate is timestamp) &&
-             (!('description' in data) || data.description is string && data.description.size() <= 1000) &&
-             (!('calendarEventId' in data) || data.calendarEventId is string) &&
-             (!('recurrence' in data) || data.recurrence in ['daily', 'weekly', 'monthly', 'none']) &&
-             (!('parentId' in data) || data.parentId is string);
-    }
-
-    function isValidSubTask(data) {
-      let allowedFields = ['taskId', 'title', 'completed', 'order'];
-      return allowedFields.hasAll(data.keys()) &&
-             isValidString(data.title, 200) &&
-             data.completed is bool &&
-             data.order is number;
-    }
-
-    function isValidNote(data) {
-      let allowedFields = ['taskId', 'content', 'type', 'question', 'answer', 'hint'];
-      return allowedFields.hasAll(data.keys()) && 
-             data.type in ['concept', 'flashcard'] &&
-             (data.type == 'concept' ? (
-               isValidString(data.content, 10000) && 
-               !('question' in data) && !('answer' in data) && !('hint' in data)
-             ) : (
-               isValidString(data.question, 1000) && 
-               isValidString(data.answer, 2000) && 
-               (!('hint' in data) || data.hint is string && data.hint.size() <= 1000) &&
-               !('content' in data)
-             ));
-    }
-
+    // ===============================================================
+    // User Profiles
+    // ===============================================================
+    
     function isValidUser(data) {
-      let allowedFields = ['uid', 'email', 'displayName', 'photoURL', 'calendarSyncEnabled', 'aiEnabled', 'hasCompletedOnboarding', 'themeColor', 'role'];
-      return data.keys().hasAll(['uid', 'email']) &&
-             allowedFields.hasAll(data.keys()) &&
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'photoURL', 'calendarSyncEnabled', 'aiEnabled', 'hasCompletedOnboarding']) &&
              data.uid == request.auth.uid &&
              data.email is string && data.email.size() <= 255 &&
-             (!('displayName' in data) || data.displayName is string) &&
-             (!('photoURL' in data) || (data.photoURL is string || data.photoURL == null)) &&
-             (!('calendarSyncEnabled' in data) || data.calendarSyncEnabled is bool) &&
-             (!('aiEnabled' in data) || data.aiEnabled is bool) &&
-             (!('hasCompletedOnboarding' in data) || data.hasCompletedOnboarding is bool) &&
-             (!('themeColor' in data) || data.themeColor is string) &&
-             (!('role' in data) || data.role is string);
+             data.displayName is string && data.displayName.size() <= 100 &&
+             (data.photoURL is string && data.photoURL.size() <= 1000 || data.photoURL == null) &&
+             data.calendarSyncEnabled is bool &&
+             data.aiEnabled is bool &&
+             data.hasCompletedOnboarding is bool &&
+             (!('themeColor' in data) || data.themeColor is string && data.themeColor.size() <= 50) &&
+             (!('role' in data) || data.role in ['user', 'admin']);
     }
 
-    // ===============================================================
-    // Rules
-    // ===============================================================
-
-    // User Profiles
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
-      allow delete: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      
+      allow create: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      isValidId(userId) &&
+                      incoming().keys().size() >= 7 && // required + optional count
+                      incoming().keys().size() <= 9;
+      
+      allow update: if isOwner(userId) && 
+                      isValidUser(incoming()) &&
+                      // Users cannot change their own role unless they are already admin
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['role']) || isAdmin()) &&
+                      incoming().uid == existing().uid &&
+                      incoming().email == existing().email;
+                      
+      allow delete: if isAdmin();
     }
 
-    // Tasks
-    match /tasks/{taskId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      
-      allow create: if isAuthenticated() && isValidTask(request.resource.data);
-      
-      allow update: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || isAdmin()) &&
-        isValidTask(request.resource.data) &&
-        request.resource.data.createdAt == resource.data.createdAt; // Immutable field
-        
-      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    // ===============================================================
+    // Tasks (Assignments and Exams)
+    // ===============================================================
+    
+    function isValidTask(data) {
+      return data.keys().hasAll(['userId', 'title', 'type', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.type in ['assignment', 'exam'] &&
+             data.status in ['pending', 'completed'] &&
+             data.createdAt is timestamp &&
+             (!('priority' in data) || data.priority in ['low', 'medium', 'high']) &&
+             (!('progress' in data) || (data.progress is number && data.progress >= 0 && data.progress <= 100)) &&
+             (!('description' in data) || data.description is string && data.description.size() <= 1000) &&
+             (!('dueDate' in data) || data.dueDate is timestamp) &&
+             (!('calendarEventId' in data) || data.calendarEventId is string && data.calendarEventId.size() <= 255) &&
+             (!('recurrence' in data) || data.recurrence in ['daily', 'weekly', 'monthly', 'none']) &&
+             (!('parentId' in data) || (data.parentId is string && isValidId(data.parentId)));
+    }
 
+    match /tasks/{taskId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isSignedIn() && 
+                      isValidTask(incoming()) && 
+                      isValidId(taskId) &&
+                      incoming().createdAt == request.time &&
+                      incoming().keys().size() >= 5 &&
+                      incoming().keys().size() <= 12;
+      
+      allow update: if isSignedIn() && 
+                      (existing().userId == request.auth.uid || isAdmin()) &&
+                      isValidTask(incoming()) &&
+                      incoming().userId == existing().userId && 
+                      incoming().createdAt == existing().createdAt &&
+                      (!('parentId' in existing()) || incoming().parentId == existing().parentId);
+                      
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+
+      // ===============================================================
       // Sub-tasks
-      match /subtasks/{subtaskId} {
-        allow read: if isTaskOwner(taskId) || isAdmin();
-        allow create: if isTaskOwner(taskId) && isValidSubTask(request.resource.data);
-        allow update: if isTaskOwner(taskId) && isValidSubTask(request.resource.data);
-        allow delete: if isTaskOwner(taskId) || isAdmin();
+      // ===============================================================
+      
+      function isValidSubTask(data) {
+        return data.keys().hasAll(['taskId', 'title', 'completed', 'order']) &&
+               data.taskId == taskId &&
+               data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+               data.completed is bool &&
+               data.order is number;
       }
 
+      function isParentOwner() {
+        return isSignedIn() && 
+               exists(/databases/$(database)/documents/tasks/$(taskId)) &&
+               get(/databases/$(database)/documents/tasks/$(taskId)).data.userId == request.auth.uid;
+      }
+
+      match /subtasks/{subtaskId} {
+        allow read: if isParentOwner() || isAdmin();
+        allow create: if isParentOwner() && isValidSubTask(incoming()) && isValidId(subtaskId) && incoming().keys().size() == 4;
+        allow update: if isParentOwner() && isValidSubTask(incoming()) && incoming().taskId == existing().taskId;
+        allow delete: if isParentOwner() || isAdmin();
+      }
+
+      // ===============================================================
       // Notes
+      // ===============================================================
+      
+      function isValidNote(data) {
+        return data.keys().hasAll(['taskId', 'type']) &&
+               data.taskId == taskId &&
+               data.type in ['concept', 'flashcard'] &&
+               (data.type == 'concept' ? (
+                 data.content is string && data.content.size() <= 10000 && 
+                 !data.keys().hasAny(['question', 'answer', 'hint'])
+               ) : (
+                 data.question is string && data.question.size() <= 1000 && 
+                 data.answer is string && data.answer.size() <= 2000 && 
+                 (!('hint' in data) || data.hint is string && data.hint.size() <= 1000) &&
+                 !data.keys().hasAny(['content'])
+               ));
+      }
+
       match /notes/{noteId} {
-        allow read: if isTaskOwner(taskId) || isAdmin();
-        allow create: if isTaskOwner(taskId) && isValidNote(request.resource.data);
-        allow update: if isTaskOwner(taskId) && isValidNote(request.resource.data);
-        allow delete: if isTaskOwner(taskId) || isAdmin();
+        allow read: if isParentOwner() || isAdmin();
+        allow create: if isParentOwner() && isValidNote(incoming()) && isValidId(noteId);
+        allow update: if isParentOwner() && isValidNote(incoming()) && incoming().taskId == existing().taskId;
+        allow delete: if isParentOwner() || isAdmin();
       }
     }
   }
