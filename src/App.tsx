@@ -523,8 +523,20 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [mobileActiveView, setMobileActiveView] = useState<'tasks' | 'dashboard' | 'ideas'>('dashboard');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'dueDate' | 'priority'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'dueDate' | 'priority'>(() => {
+    return (localStorage.getItem('lumina_sort_by') as any) || 'createdAt';
+  });
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
+    return (localStorage.getItem('lumina_sort_order') as any) || 'desc';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lumina_sort_by', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('lumina_sort_order', sortOrder);
+  }, [sortOrder]);
 
   const tagline = useMemo(() => {
     const phrases = [
@@ -1754,7 +1766,22 @@ function App() {
             </div>
           </div>
 
-              <motion.div 
+          {/* Task Summary Count */}
+          <div className="px-5 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-primary-brand animate-pulse" />
+              <span className="text-[10px] font-black text-text-main/60 dark:text-text-main-dark/60 uppercase tracking-widest">
+                {tasks.filter(t => t.type === activeTab && t.status === 'pending').length} {activeTab}{tasks.filter(t => t.type === activeTab && t.status === 'pending').length !== 1 ? 's' : ''} Remaining
+              </span>
+            </div>
+            {tasks.filter(t => t.type === activeTab && t.status === 'completed').length > 0 && (
+              <span className="text-[9px] font-bold text-green-500/80 dark:text-green-400/80 bg-green-500/10 px-2 py-0.5 rounded-full">
+                {tasks.filter(t => t.type === activeTab && t.status === 'completed').length} Mastered
+              </span>
+            )}
+          </div>
+
+          <motion.div 
                 variants={staggerContainer}
                 initial="hidden"
                 animate="show"
